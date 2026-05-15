@@ -78,8 +78,7 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                         if (!detectedSessionId) {
                             try {
                                 const j = JSON.parse(line);
-                                const sid = j.session_id ?? j.sessionId ?? j.conversation_id;
-                                if (typeof sid === 'string' && sid) detectedSessionId = sid;
+                                detectedSessionId = extractSessionId(cli, j);
                             } catch { /* not JSON */ }
                         }
                         appendJobLog(job.id, line);
@@ -172,6 +171,32 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
     });
 
     return { jobId: job.id, result };
+}
+
+export function extractSessionId(cli: string, event: unknown): string | undefined {
+    if (!isRecord(event)) return undefined;
+    const common = firstString(event, ['session_id', 'sessionId', 'conversation_id', 'conversationId']);
+    if (common) return common;
+
+    if (cli === 'codex') {
+        return firstString(event, ['thread_id', 'threadId']);
+    }
+    if (cli === 'opencode') {
+        return firstString(event, ['sessionID', 'sessionId']);
+    }
+    return undefined;
+}
+
+function firstString(obj: Record<string, unknown>, keys: string[]): string | undefined {
+    for (const key of keys) {
+        const value = obj[key];
+        if (typeof value === 'string' && value) return value;
+    }
+    return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
 export function killAllJobs(reason = 'user'): number {

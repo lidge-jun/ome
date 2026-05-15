@@ -24,10 +24,44 @@ describe('parseLine', () => {
         assert.equal(ev?.phase, 'coding');
     });
 
+    it('parses real Codex agent_message events', () => {
+        const line = JSON.stringify({ type: 'item.completed', item: { id: 'item_0', type: 'agent_message', text: 'OME_SMOKE_OK' } });
+        const ev = parseLine('codex', line);
+        assert.equal(ev?.type, 'assistant');
+        assert.equal(ev?.message, 'OME_SMOKE_OK');
+    });
+
+    it('parses real Codex command execution events as tools', () => {
+        const line = JSON.stringify({ type: 'item.started', item: { id: 'item_1', type: 'command_execution', command: 'npm test' } });
+        const ev = parseLine('codex', line);
+        assert.equal(ev?.type, 'tool_use');
+        assert.equal(ev?.toolName, 'npm test');
+    });
+
     it('parses gemini functionCall', () => {
         const line = JSON.stringify({ type: 'tool', functionCall: { name: 'search' } });
         const ev = parseLine('gemini', line);
         assert.equal(ev?.toolName, 'search');
+    });
+
+    it('parses real Gemini tool_name events', () => {
+        const line = JSON.stringify({ type: 'tool_use', tool_name: 'read_file', content: 'reading' });
+        const ev = parseLine('gemini', line);
+        assert.equal(ev?.type, 'tool_use');
+        assert.equal(ev?.toolName, 'read_file');
+    });
+
+    it('parses OpenCode text and reasoning events', () => {
+        const textLine = JSON.stringify({ type: 'text', sessionID: 'ses_1', part: { type: 'text', text: 'OME_SMOKE_OK' } });
+        const reasoningLine = JSON.stringify({ type: 'reasoning', sessionID: 'ses_1', part: { type: 'reasoning', text: 'thinking' } });
+
+        const textEv = parseLine('opencode', textLine);
+        const reasoningEv = parseLine('opencode', reasoningLine);
+
+        assert.equal(textEv?.type, 'assistant');
+        assert.equal(textEv?.message, 'OME_SMOKE_OK');
+        assert.equal(reasoningEv?.type, 'thinking');
+        assert.equal(reasoningEv?.message, 'thinking');
     });
 
     it('returns null for empty/whitespace', () => {

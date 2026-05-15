@@ -61,14 +61,34 @@ function assertSystemPromptSupported(cli: AgentCli, opts: SpawnOptions): void {
 }
 
 function buildClaudeNew(opts: SpawnOptions): string[] {
-    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--include-partial-messages'];
+    const args = [
+        '--print',
+        '--verbose',
+        '--output-format',
+        'stream-json',
+        '--include-partial-messages',
+        '--dangerously-skip-permissions',
+        '--max-turns',
+        '50',
+    ];
     if (opts.model) args.push('--model', opts.model);
     if (opts.systemPrompt) args.push('--append-system-prompt', opts.systemPrompt);
     return args;
 }
 
 function buildClaudeResume(sid: string, opts: SpawnOptions): string[] {
-    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--include-partial-messages', '--resume', sid];
+    const args = [
+        '--print',
+        '--verbose',
+        '--output-format',
+        'stream-json',
+        '--include-partial-messages',
+        '--dangerously-skip-permissions',
+        '--resume',
+        sid,
+        '--max-turns',
+        '50',
+    ];
     if (opts.model) args.push('--model', opts.model);
     if (opts.systemPrompt) args.push('--append-system-prompt', opts.systemPrompt);
     return args;
