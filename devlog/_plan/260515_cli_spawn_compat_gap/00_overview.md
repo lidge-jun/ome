@@ -35,9 +35,12 @@ The compatibility work is implemented across these files:
 | `src/spawn/preflight.ts` | new | Adds CLI path resolution and safe `--version` preflight checks. |
 | `src/spawn/index.ts` | modified | Uses `stdinPrompt` before writing prompt to child stdin. |
 | `src/index.ts` | modified | Exports spawn contract and preflight helpers. |
+| `src/observe/parser.ts` | modified | Parses Codex/Gemini/OpenCode JSON event shapes used by pinned output modes. |
 | `src/cli/index.ts` | modified | Adds `spawn --dry-run`, `doctor`, and updated help text. |
 | `tests/spawn/args.test.ts` | new | Locks provider arg matrix and known-invalid flag exclusions. |
 | `tests/spawn/preflight.test.ts` | new | Covers preflight helper behavior without requiring AI CLI auth. |
+| `tests/spawn/session-id.test.ts` | new | Covers Codex `thread_id` and OpenCode `sessionID` session persistence extraction. |
+| `tests/observe/parser.test.ts` | modified | Covers real Codex/Gemini/OpenCode stream event fixtures. |
 | `tests/dispatch/dispatch.test.ts` | modified | Verifies unsupported employee prompts are rejected before spawn. |
 | `tests/cli/smoke.test.ts` | modified | Covers `spawn --dry-run` and `doctor`. |
 | `README.md` | modified | Documents dry-run, doctor, and default employee names. |
@@ -81,4 +84,5 @@ OME needs a provider adapter boundary. `buildArgs()` is the right first place, b
 | Command | Result |
 |---------|--------|
 | `npm run typecheck` | PASS |
-| `npm test` | PASS — 48 pass / 0 fail |
+| `npm test` | PASS — 55 pass / 0 fail |
+| live `ome spawn` smoke | PASS — `claude`, `codex`, `gemini`, `opencode`; `copilot` intentionally excluded |

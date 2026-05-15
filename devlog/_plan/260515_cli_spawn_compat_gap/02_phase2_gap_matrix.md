@@ -49,12 +49,12 @@
 
 | ID | Gap | Severity | Current local status |
 |----|-----|----------|----------------------|
-| D1 | Session ID capture only checks JSON lines for `session_id`, `sessionId`, `conversation_id`. | HIGH | unresolved. |
+| D1 | Session ID capture only checks JSON lines for `session_id`, `sessionId`, `conversation_id`. | HIGH | fixed locally for common fields plus Codex `thread_id` and OpenCode `sessionID`; unit-tested. |
 | D2 | Codex local args do not request explicit JSON output. | HIGH | fixed locally with `--json`. |
 | D3 | Gemini output format is not pinned. | MEDIUM | fixed locally with `--output-format stream-json`. |
 | D4 | Copilot output is set to JSON but parser contract is not tested. | MEDIUM | partially configured; unverified. |
 | D5 | OpenCode output format is not pinned. | MEDIUM | fixed locally with `--thinking --format json` and cli-jaw-aligned default `opencode-go/kimi-k2.6`. |
-| D6 | `watch` / `inspect` may parse provider output incorrectly while the CLI itself succeeds. | MEDIUM | reduced by pinned JSON modes; provider-specific parser enrichment remains future work. |
+| D6 | `watch` / `inspect` may parse provider output incorrectly while the CLI itself succeeds. | MEDIUM | fixed for observed Codex/Gemini/OpenCode event fixtures; broader provider enrichment remains future hardening. |
 
 ## E. Defaults and Registry
 
