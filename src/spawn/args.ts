@@ -1,39 +1,60 @@
 import type { AgentCli, SpawnOptions } from '../registry/types.js';
 
-export function buildArgs(cli: AgentCli, prompt: string, opts: SpawnOptions = {}): string[] {
-    if (opts.sessionId) {
-        return buildResumeArgs(cli, prompt, opts);
-    }
-    return buildNewArgs(cli, opts);
+export interface BuildResult {
+    args: string[];
+    stdinPrompt: boolean;
 }
 
-function buildNewArgs(cli: AgentCli, opts: SpawnOptions): string[] {
+export function buildArgs(cli: AgentCli, prompt: string, opts: SpawnOptions = {}): BuildResult {
+    assertSystemPromptSupported(cli, opts);
+    if (opts.sessionId) {
+        return buildResumeResult(cli, prompt, opts);
+    }
+    return buildNewResult(cli, prompt, opts);
+}
+
+function buildNewResult(cli: AgentCli, prompt: string, opts: SpawnOptions): BuildResult {
     switch (cli) {
         case 'claude':
-            return buildClaudeNew(opts);
+            return { args: buildClaudeNew(opts), stdinPrompt: true };
         case 'codex':
-            return buildCodexNew(opts);
+            return { args: buildCodexNew(opts), stdinPrompt: true };
         case 'gemini':
-            return buildGeminiNew(opts);
+            return { args: buildGeminiNew(prompt, opts), stdinPrompt: false };
+        case 'copilot':
+            return buildCopilotNew(prompt, opts);
+        case 'opencode':
+            return { args: buildOpencodeNew(prompt, opts), stdinPrompt: false };
         default:
-            return buildGenericNew(opts);
+            return buildGenericNew(cli, opts);
     }
 }
 
-function buildResumeArgs(cli: AgentCli, prompt: string, opts: SpawnOptions): string[] {
+function buildResumeResult(cli: AgentCli, prompt: string, opts: SpawnOptions): BuildResult {
     const sid = opts.sessionId!;
     switch (cli) {
         case 'claude':
-            return buildClaudeResume(sid, opts);
+            return { args: buildClaudeResume(sid, opts), stdinPrompt: true };
         case 'codex':
-            return buildCodexResume(sid, prompt, opts);
+            return { args: buildCodexResume(sid, prompt, opts), stdinPrompt: false };
         case 'gemini':
-            return buildGeminiResume(sid, opts);
+            return { args: buildGeminiResume(sid, prompt, opts), stdinPrompt: false };
         case 'opencode':
-            return buildOpencodeResume(sid, opts);
+            return { args: buildOpencodeResume(sid, prompt, opts), stdinPrompt: false };
+        case 'copilot':
+            return buildCopilotResume(sid, prompt, opts);
         default:
-            return buildGenericNew(opts);
+            return buildGenericResume(cli);
     }
+}
+
+function assertSystemPromptSupported(cli: AgentCli, opts: SpawnOptions): void {
+    if (!opts.systemPrompt) return;
+    if (cli === 'claude') return;
+    throw new Error(
+        `systemPrompt is not supported for CLI "${cli}" yet. ` +
+        'Refusing to silently drop employee instructions.',
+    );
 }
 
 function buildClaudeNew(opts: SpawnOptions): string[] {
@@ -50,40 +71,69 @@ function buildClaudeResume(sid: string, opts: SpawnOptions): string[] {
 }
 
 function buildCodexNew(opts: SpawnOptions): string[] {
-    const args = ['--quiet', '--full-auto'];
-    if (opts.model) args.push('--model', opts.model);
-    if (opts.systemPrompt) args.push('--system-prompt', opts.systemPrompt);
+    const args = ['exec', '--json'];
+    if (opts.model) args.push('-m', opts.model);
     return args;
 }
 
 function buildCodexResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
-    const args = ['exec', 'resume', sid, prompt, '--quiet', '--full-auto'];
+    const args = ['exec', 'resume', '--json'];
+    if (opts.model) args.push('-m', opts.model);
+    args.push(sid, prompt);
+    return args;
+}
+
+function buildGeminiNew(prompt: string, opts: SpawnOptions): string[] {
+    const args = ['--prompt', prompt, '--output-format', 'stream-json'];
     if (opts.model) args.push('--model', opts.model);
     return args;
 }
 
-function buildGeminiNew(opts: SpawnOptions): string[] {
-    const args: string[] = [];
-    if (opts.model) args.push('--model', opts.model);
-    if (opts.systemPrompt) args.push('--system-prompt', opts.systemPrompt);
-    return args;
-}
-
-function buildGeminiResume(sid: string, opts: SpawnOptions): string[] {
-    const args = ['--resume', sid];
+function buildGeminiResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
+    const args = ['--resume', sid, '--prompt', prompt, '--output-format', 'stream-json'];
     if (opts.model) args.push('--model', opts.model);
     return args;
 }
 
-function buildOpencodeResume(sid: string, opts: SpawnOptions): string[] {
-    const args = ['-s', sid];
+function buildCopilotNew(prompt: string, opts: SpawnOptions): BuildResult {
+    const args = ['-p', prompt, '--output-format', 'json', '--yolo'];
     if (opts.model) args.push('--model', opts.model);
+    return { args, stdinPrompt: false };
+}
+
+function buildCopilotResume(sid: string, prompt: string, opts: SpawnOptions): BuildResult {
+    const args = ['--resume', sid, '-p', prompt, '--output-format', 'json', '--yolo'];
+    if (opts.model) args.push('--model', opts.model);
+    return { args, stdinPrompt: false };
+}
+
+function buildOpencodeNew(prompt: string, opts: SpawnOptions): string[] {
+    const args = ['run', '--format', 'json'];
+    if (opts.model) args.push('-m', opts.model);
+    args.push(prompt);
     return args;
 }
 
-function buildGenericNew(opts: SpawnOptions): string[] {
-    const args: string[] = [];
-    if (opts.model) args.push('--model', opts.model);
-    if (opts.systemPrompt) args.push('--system-prompt', opts.systemPrompt);
+function buildOpencodeResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
+    const args = ['run', '-s', sid, '--format', 'json'];
+    if (opts.model) args.push('-m', opts.model);
+    args.push(prompt);
     return args;
+}
+
+function buildGenericNew(cli: AgentCli, opts: SpawnOptions): BuildResult {
+    if (opts.model) {
+        throw new Error(
+            `Model override is not supported for generic CLI "${cli}". ` +
+            'Refusing to append provider-specific flags to an arbitrary executable.',
+        );
+    }
+    return { args: [], stdinPrompt: true };
+}
+
+function buildGenericResume(cli: AgentCli): BuildResult {
+    throw new Error(
+        `Session resume is not supported for generic CLI "${cli}". ` +
+        'Register a supported provider or start a fresh generic spawn.',
+    );
 }

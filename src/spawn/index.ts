@@ -1,9 +1,10 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import type { SpawnOptions, SpawnResult, AgentCli } from '../registry/types.js';
+import type { SpawnOptions, SpawnResult } from '../registry/types.js';
 import { buildArgs } from './args.js';
 import { createJob, updateJob, completeJob, cancelJob, appendJobLog, closeJobStream, readJobMeta, listRunningJobs, isProcessAlive } from './jobs.js';
 import { terminateProcessTree, scheduleForceKill } from './process-kill.js';
+import { resolveCliPath } from './preflight.js';
 
 export const bus = new EventEmitter();
 
@@ -27,7 +28,7 @@ export function getActiveJobs(): ReadonlyMap<string, ChildProcess> {
 export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: string; result: Promise<SpawnResult> } {
     const cli = opts.cli ?? 'claude';
     const cliPath = resolveCliPath(cli);
-    const args = buildArgs(cli, prompt, opts);
+    const { args, stdinPrompt } = buildArgs(cli, prompt, opts);
     const env = { ...process.env, ...opts.env };
 
     const job = createJob(cli, prompt, opts.model);
@@ -140,7 +141,9 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                 reject(err);
             });
 
-            child.stdin?.write(prompt);
+            if (stdinPrompt) {
+                child.stdin?.write(prompt);
+            }
             child.stdin?.end();
         } catch (err) {
             lineBuffers.delete(job.id);
@@ -201,15 +204,4 @@ export function waitForProcessEnd(timeoutMs = 3000): Promise<void> {
         }, 50);
         setTimeout(() => { clearInterval(check); resolve(); }, timeoutMs);
     });
-}
-
-function resolveCliPath(cli: AgentCli): string {
-    const known: Record<string, string> = {
-        claude: 'claude',
-        codex: 'codex',
-        gemini: 'gemini',
-        copilot: 'copilot',
-        opencode: 'opencode',
-    };
-    return known[cli] ?? cli;
 }

@@ -6,6 +6,8 @@ import { homedir } from 'node:os';
 import { mkdirSync } from 'node:fs';
 import { initDb, closeDb, addEmployee, removeEmployee, listEmployees } from '../registry/index.js';
 import { spawnAgent, isAgentBusy, killJobByPid } from '../spawn/index.js';
+import { buildArgs, type BuildResult } from '../spawn/args.js';
+import { preflightCli } from '../spawn/preflight.js';
 import { messageQueue, listQueue, clearQueue, setQueueHold, clearQueueHold } from '../queue/index.js';
 import { dispatch } from '../dispatch/index.js';
 import { inspect as inspectJob, watch as watchJob } from '../observe/index.js';
@@ -44,6 +46,7 @@ async function main(): Promise<void> {
             case 'watch': await handleWatch(args.slice(1)); break;
             case 'inspect': handleInspect(args.slice(1)); break;
             case 'web': handleWeb(args.slice(1)); break;
+            case 'doctor': handleDoctor(); break;
             case 'init': handleInit(); break;
             case 'status': handleStatus(); break;
             default:
@@ -62,16 +65,37 @@ async function handleSpawn(args: string[]): Promise<void> {
         options: {
             cli: { type: 'string', default: 'claude' },
             model: { type: 'string' },
+            'dry-run': { type: 'boolean', default: false },
         },
         allowPositionals: true,
     });
     const prompt = positionals.join(' ');
-    if (!prompt) { console.error('Usage: ome spawn [--cli claude] [--model sonnet] "prompt"'); process.exitCode = 1; return; }
-    const { jobId, result } = spawnAgent(prompt, { cli: values.cli, model: values.model });
+    if (!prompt) { console.error('Usage: ome spawn [--dry-run] [--cli claude] [--model sonnet] "prompt"'); process.exitCode = 1; return; }
+    const cli = values.cli ?? 'claude';
+    const model = values.model;
+    if (values['dry-run']) {
+        const contract = buildArgs(cli, prompt, { cli, model });
+        printSpawnDryRun(cli, prompt, model, contract);
+        return;
+    }
+    const { jobId, result } = spawnAgent(prompt, { cli, model });
     process.stderr.write(`[ome] jobId=${jobId}\n`);
     const sr = await result;
     process.stdout.write(sr.text);
     process.exitCode = sr.code;
+}
+
+function printSpawnDryRun(cli: string, prompt: string, model: string | undefined, contract: BuildResult): void {
+    const body = {
+        cli,
+        command: cli,
+        args: contract.args,
+        model: model ?? null,
+        prompt,
+        promptTransport: contract.stdinPrompt ? 'stdin' : 'argv',
+        stdinPrompt: contract.stdinPrompt,
+    };
+    console.log(JSON.stringify(body, null, 2));
 }
 
 async function handleDispatch(args: string[]): Promise<void> {
@@ -307,6 +331,17 @@ function handleStatus(): void {
     }
 }
 
+function handleDoctor(): void {
+    const clis = ['claude', 'codex', 'gemini', 'copilot', 'opencode'];
+    console.log('CLI Preflight:');
+    for (const cli of clis) {
+        const result = preflightCli(cli);
+        const state = result.available ? 'ok' : 'missing';
+        const detail = result.version ?? result.error;
+        console.log(`  ${cli.padEnd(8)} ${state}${detail ? ` — ${detail}` : ''}`);
+    }
+}
+
 function printHelp(): void {
     console.log(`OME — Orchestrated Multi-agent Engine
 
@@ -321,12 +356,15 @@ Commands:
   watch     Watch a running job's live events
   inspect   Inspect a job's current state
   web       Start the management web UI (--host, --port)
-  init      Seed default employees (claude/codex/gemini)
+  doctor    Check installed agent CLI binaries
+  init      Seed default employees (Frontend/Backend/Data/Docs)
   status    Show current status
 
 Examples:
   ome spawn --cli claude --model opus "Fix the login bug"
+  ome spawn --dry-run --cli codex "Inspect spawn contract"
   ome dispatch --agent "Frontend" --task "Fix CSS grid"
+  ome doctor
   ome jobs
   ome watch job-abc123
   ome kill job-abc123
