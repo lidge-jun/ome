@@ -15,11 +15,11 @@ This plan is focused on spawn/dispatch compatibility. It does not redesign the r
 Observed local changes:
 
 - `buildArgs()` now returns `BuildResult`.
-- Claude keeps stdin prompt delivery.
-- Codex uses `exec`.
-- Gemini no longer receives `--system-prompt`.
+- Claude keeps stdin prompt delivery and uses `--append-system-prompt`.
+- Codex uses `exec --json` with cli-jaw-aligned auto/sandbox and git-check flags.
+- Gemini uses headless `--prompt`, `stream-json`, trust/approval flags, and home include-directory.
 - Copilot receives prompt via `-p`.
-- OpenCode uses `run`.
+- OpenCode uses `run --thinking --format json`.
 - Resume paths now declare whether stdin should receive the prompt.
 
 ### MODIFY `src/spawn/index.ts`

@@ -21,7 +21,7 @@
 | A6 | OpenCode new-run path needs `run`. | BLOCKER | fixed locally. |
 | A7 | OpenCode resume path needs `run -s <sid>`. | HIGH | fixed locally; needs test. |
 | A8 | Generic executables still receive `--model` when `opts.model` exists. | MEDIUM | fixed locally by rejecting generic model overrides. |
-| A9 | Claude flags are assumed valid but should be pinned by tests against expected contract. | MEDIUM | fixed locally by arg matrix tests. |
+| A9 | Claude flags are assumed valid but should be pinned by tests against expected contract. | MEDIUM | fixed locally by arg matrix tests; aligned to cli-jaw `--append-system-prompt` + partial stream. |
 
 ## B. Prompt and System Prompt Transport
 
@@ -39,8 +39,8 @@
 | ID | Gap | Severity | Current local status |
 |----|-----|----------|----------------------|
 | C1 | Resume syntax differs by CLI but is only lightly encoded. | HIGH | partially fixed in `buildResumeResult()`. |
-| C2 | Codex resume passes prompt as an arg and disables stdin. | HIGH | fixed locally with `exec resume --json ...`; unit-tested. |
-| C3 | Gemini resume uses `--resume <sid>` with headless prompt. | HIGH | fixed locally with `--prompt` + `stream-json`; unit-tested. |
+| C2 | Codex resume passes prompt as an arg and disables stdin. | HIGH | fixed locally with `exec resume --json ...`, bypass approvals, and skip git repo check; unit-tested. |
+| C3 | Gemini resume uses `--resume <sid>` with headless prompt. | HIGH | fixed locally with `--prompt`, `stream-json`, `--skip-trust`, `--approval-mode yolo`, and home include-directory; unit-tested. |
 | C4 | Copilot resume uses `--resume <sid> -p <prompt>`. | MEDIUM | fixed locally; unit-tested. |
 | C5 | Generic CLI resume falls back to new-run behavior. | MEDIUM | fixed locally by explicit rejection. |
 | C6 | Stale session detection is text-pattern based and provider-agnostic. | MEDIUM | existing behavior; needs provider-specific additions as failures appear. |
@@ -53,7 +53,7 @@
 | D2 | Codex local args do not request explicit JSON output. | HIGH | fixed locally with `--json`. |
 | D3 | Gemini output format is not pinned. | MEDIUM | fixed locally with `--output-format stream-json`. |
 | D4 | Copilot output is set to JSON but parser contract is not tested. | MEDIUM | partially configured; unverified. |
-| D5 | OpenCode output format is not pinned. | MEDIUM | fixed locally with `--format json`. |
+| D5 | OpenCode output format is not pinned. | MEDIUM | fixed locally with `--thinking --format json` and cli-jaw-aligned default `opencode-go/kimi-k2.6`. |
 | D6 | `watch` / `inspect` may parse provider output incorrectly while the CLI itself succeeds. | MEDIUM | reduced by pinned JSON modes; provider-specific parser enrichment remains future work. |
 
 ## E. Defaults and Registry

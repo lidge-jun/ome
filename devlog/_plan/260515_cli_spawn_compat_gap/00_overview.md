@@ -31,7 +31,7 @@ The compatibility work is implemented across these files:
 
 | File | Observed local status | Notes |
 |------|-----------------------|-------|
-| `src/spawn/args.ts` | modified | Introduces `BuildResult`, CLI-specific args, stdin routing, system prompt guard, and generic model rejection. |
+| `src/spawn/args.ts` | modified | Introduces `BuildResult`, CLI-specific args, stdin routing, system prompt guard, cli-jaw-aligned provider flags, and generic model rejection. |
 | `src/spawn/preflight.ts` | new | Adds CLI path resolution and safe `--version` preflight checks. |
 | `src/spawn/index.ts` | modified | Uses `stdinPrompt` before writing prompt to child stdin. |
 | `src/index.ts` | modified | Exports spawn contract and preflight helpers. |
