@@ -30,22 +30,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cli-dot.yellow{background:#f5a623}
 .cli-dot.red{background:#e0e0e0}
 .cli-svg{display:flex;align-items:center}
-.cli-name{font-weight:600;font-size:.85rem}
-.cli-account{font-size:.7rem;color:#888;margin:2px 0 4px 20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cli-auth-warn{font-size:.75rem;color:#e67e22;margin:4px 0 0 20px}
-.cli-bars{margin-top:4px;padding-left:20px}
+.cli-name{font-weight:600;font-size:.8rem}
+.cli-account{font-size:.65rem;color:#888;margin:2px 0 3px 20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cli-auth-warn{font-size:.7rem;color:#e67e22;margin:3px 0 0 20px}
+.cli-bars{margin-top:3px;padding-left:20px}
 .cli-unavailable{text-align:center;color:#999;font-size:.8rem;padding:12px}
 
 /* Quota window bars */
-.quota-window{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:.75rem}
-.win-label{width:22px;text-align:right;color:#666;flex-shrink:0}
-.win-bar{flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden}
+.quota-window{display:flex;align-items:center;gap:4px;margin:2px 0;font-size:.65rem}
+.win-label{width:20px;text-align:right;color:#666;flex-shrink:0}
+.win-bar{flex:1;height:5px;background:#eee;border-radius:3px;overflow:hidden}
 .win-fill{height:100%;border-radius:3px;transition:width .3s}
 .win-fill.ok{background:#4a9eff}
 .win-fill.warn{background:#f5a623}
 .win-fill.over{background:#e74c3c}
-.win-pct{width:30px;text-align:right;color:#555;flex-shrink:0}
-.win-reset{color:#aaa;font-size:.7rem;width:36px;text-align:right;flex-shrink:0}
+.win-pct{width:26px;text-align:right;color:#555;flex-shrink:0}
+.win-reset{color:#aaa;font-size:.6rem;width:32px;text-align:right;flex-shrink:0}
 
 /* Refresh */
 .refresh-row{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:14px;border-top:1px solid #eee}

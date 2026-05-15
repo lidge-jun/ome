@@ -196,7 +196,7 @@ function makeCliCard(cli,entry){
     const bars=document.createElement('div');bars.className='cli-bars';
     entry.windows.forEach(win=>{
       const row=document.createElement('div');row.className='quota-window';
-      const lbl=document.createElement('span');lbl.className='win-label';lbl.textContent=win.label;
+      const lbl=document.createElement('span');lbl.className='win-label';lbl.textContent=shortLabel(win.label);
       const track=document.createElement('div');track.className='win-bar';
       const fill=document.createElement('div');fill.className='win-fill';
       const pct=Math.min(win.percent||0,100);
@@ -204,19 +204,26 @@ function makeCliCard(cli,entry){
       fill.classList.add(pct>=80?'over':pct>=50?'warn':'ok');
       track.appendChild(fill);
       const pctText=document.createElement('span');pctText.className='win-pct';pctText.textContent=Math.round(pct)+'%';
-      const reset=document.createElement('span');reset.className='win-reset';
-      if(win.resetsAt){
-        const d=new Date(typeof win.resetsAt==='number'?win.resetsAt:win.resetsAt);
-        const now=new Date();
-        if(d.toDateString()===now.toDateString()){reset.textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
-        else{reset.textContent=(d.getMonth()+1)+'/'+d.getDate()}
-      }
+      const reset=document.createElement('span');reset.className='win-reset';reset.textContent=shortReset(win.resetsAt);
       row.appendChild(lbl);row.appendChild(track);row.appendChild(pctText);row.appendChild(reset);
       bars.appendChild(row);
     });
     card.appendChild(bars);
   }
   return card;
+}
+
+function shortLabel(l){
+  if(!l)return'';
+  return l.replace(/^(\\d+)-hour$/,'$1h').replace(/^(\\d+)-day$/,'$1d').replace(/^(\\d+)-day\\s+/,'$1d ');
+}
+function shortReset(r){
+  if(!r)return'';
+  const d=new Date(typeof r==='number'?r:r);
+  if(isNaN(d.getTime()))return'';
+  const now=new Date();
+  if(d.toDateString()===now.toDateString())return d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
+  return(d.getMonth()+1)+'/'+d.getDate();
 }
 
 function renderEmployeeCards(emps,liveQuota){
