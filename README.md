@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  Spawn, dispatch, and orchestrate AI agent CLIs — Claude Code, Codex, Gemini CLI, Copilot, OpenCode — as <strong>employees</strong> from a single unified interface.
+  Spawn, dispatch, and orchestrate AI agent CLIs — Claude Code, Codex, Codex App, Gemini CLI, Copilot, Grok, OpenCode — as <strong>employees</strong> from a single unified interface.
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Multi-CLI spawn** | Run any AI CLI (`claude`, `codex`, `gemini`, `copilot`, `opencode`, or any executable) with a single command |
+| **Multi-CLI spawn** | Run any AI CLI (`claude`, `codex`, `codex-app`, `gemini`, `copilot`, `grok`, `opencode`, or any executable) with a single command |
 | **Employee registry** | Register named employees with preset CLI, model, role, and system prompt |
 | **Session resume** | Automatically resumes previous sessions per employee — stale sessions detected and retried |
 | **Per-CLI quota** | Live quota display proxied from cli-jaw — per-window bars with account info and reset times |
@@ -38,15 +38,18 @@
 ## Quick Start
 
 ```bash
-# Install
-git clone https://github.com/lidge-jun/ome.git
-cd ome && npm install && npm run build
+# Install from npm
+npm install -g ome
 
-# Link globally (optional)
-npm link
+# — OR — install from source
+git clone https://github.com/lidge-jun/ome.git
+cd ome && npm install && npm run build && npm link
 
 # Seed default employees (Frontend, Backend, Data, Docs)
 ome init
+
+# Check which CLIs are installed
+ome doctor
 
 # Spawn a one-off agent
 ome spawn --cli claude --model opus "Fix the login bug in auth.ts"
@@ -88,8 +91,12 @@ ome spawn / ome dispatch
   │   └── db.ts ──→ SQLite (employees, sessions, quota)
   │
   ├── observe/
-  │   ├── parser.ts ──→ NDJSON → ProgressEvent (claude/codex/gemini)
-  │   └── index.ts ──→ watch() polling + inspect() snapshot
+  │   ├── parser.ts ──→ NDJSON → ProgressEvent (claude/codex/codex-app/gemini/grok/opencode)
+  │   ├── progress.ts ──→ progress() structured job progress
+  │   ├── watch-all.ts ──→ watchAll() multiplexed multi-job stream
+  │   ├── stall.ts ──→ checkStall() silence detection
+  │   ├── summary.ts ──→ summarize() post-completion summary
+  │   └── index.ts ──→ watch/inspect/progress/watchAll/stall/summary
   │
   └── web/
       ├── routes.ts ──→ REST API
@@ -110,7 +117,7 @@ ome spawn [--dry-run] --cli <name> [--model <model>] "<prompt>"
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--cli` | `claude` | CLI binary (`claude`, `codex`, `gemini`, `copilot`, or any executable) |
+| `--cli` | `claude` | CLI binary (`claude`, `codex`, `codex-app`, `gemini`, `copilot`, `grok`, `opencode`, or any executable) |
 | `--model` | *(CLI default)* | Model override |
 | `--dry-run` | `false` | Print the provider-specific args and prompt transport without spawning |
 
@@ -118,6 +125,8 @@ ome spawn [--dry-run] --cli <name> [--model <model>] "<prompt>"
 ome spawn --cli claude --model opus "Refactor the database module"
 ome spawn --cli codex --model o3-pro "Add unit tests for auth"
 ome spawn --cli gemini "Analyze quarterly sales data"
+ome spawn --cli grok "Analyze the performance bottleneck"
+ome spawn --cli codex-app "Implement the auth middleware"
 ome spawn --dry-run --cli codex "Inspect spawn contract"
 ome spawn --cli python3 "print('hello')"   # any CLI works
 ```
@@ -145,7 +154,7 @@ Employee prompts are only passed to CLIs with a verified system-prompt contract.
 ome doctor
 ```
 
-Checks known agent CLI binaries (`claude`, `codex`, `gemini`, `copilot`, `opencode`) with a safe version probe and reports whether each executable is available.
+Checks known agent CLI binaries (`claude`, `codex`, `codex-app`, `gemini`, `copilot`, `grok`, `opencode`) with a safe version probe and reports whether each executable is available.
 
 ### `ome registry` — Employee Management
 
@@ -265,6 +274,9 @@ Supported CLIs for resume:
 | Codex | `exec resume <sessionId> <prompt>` |
 | Gemini | `--resume <sessionId>` |
 | OpenCode | `-s <sessionId>` |
+| Copilot | `--resume <sessionId>` |
+| Grok | `--resume <sessionId>` |
+| Codex App | `thread/resume` (JSON-RPC) |
 
 ### Security
 
@@ -285,7 +297,7 @@ OME can be used as a library in Node.js projects:
 
 ```typescript
 import { spawnAgent, dispatch, initDb, seedDefaults } from 'ome';
-import { inspect, watch } from 'ome/observe';
+import { inspect, watch, progress, watchAll, checkStall, summarize } from 'ome/observe';
 
 // Initialize
 initDb('~/.ome/ome.db');
@@ -308,19 +320,28 @@ const dr = await dispatch('Frontend', 'Fix CSS grid', {
 });
 console.log(`Job: ${dr.jobId}, session: ${dr.sessionId}`);
 
-// Observe
-const state = inspect(jobId);
-for await (const event of watch(jobId)) {
-    console.log(`[${event.type}] ${event.message}`);
+// Observe — live progress
+const p = progress(jobId);          // { tools: { total, completed, running }, elapsedMs, ... }
+
+// Observe — multiplexed watch across multiple jobs
+for await (const { jobId: jid, event } of watchAll([job1, job2, job3])) {
+    console.log(`[${jid}] [${event.type}] ${event.message}`);
 }
+
+// Observe — stall detection
+const stall = checkStall(jobId, { warningMs: 30_000, timeoutMs: 120_000 });
+if (stall?.state === 'stalled') killJob(jobId);
+
+// Observe — post-completion summary
+const summary = summarize(jobId);   // { toolsUsed, thinkingBlocks, outputLength, exitCode, ... }
 ```
 
 ### Package Exports
 
 | Path | Description |
 |------|-------------|
-| `ome` | Main entry — spawn, dispatch, registry, types |
-| `ome/observe` | Observation subpath — inspect, watch, parser |
+| `ome` | Main entry — spawn, dispatch, registry, observe, types |
+| `ome/observe` | Observation — inspect, watch, progress, watchAll, checkStall, summarize |
 
 ### Key Types
 
@@ -346,7 +367,7 @@ interface SpawnOptions {
     onStderr?: (chunk: string) => void;
 }
 
-type AgentCli = 'claude' | 'codex' | 'gemini' | 'copilot' | 'opencode' | string;
+type AgentCli = 'claude' | 'codex' | 'codex-app' | 'gemini' | 'copilot' | 'grok' | 'opencode' | string;
 ```
 
 ---
@@ -355,14 +376,17 @@ type AgentCli = 'claude' | 'codex' | 'gemini' | 'copilot' | 'opencode' | string;
 
 OME normalizes output from different AI CLIs into a unified `ProgressEvent` format:
 
-| CLI | Event Source | Tool Detection | Phase Detection |
-|-----|-------------|----------------|-----------------|
-| **Claude** | `type` field | `obj.tool.name` or `obj.name` | — |
-| **Codex** | `type` field | `obj.tool` string | `obj.phase` |
-| **Gemini** | `type` or `event` field | `obj.functionCall.name` | — |
-| **Generic** | Fallback | — | `obj.phase` if present |
+| CLI | Protocol | Event Source | Tool Detection |
+|-----|----------|-------------|----------------|
+| **Claude** | NDJSON (stream-json) | `type` field | `obj.tool.name` or `obj.name` |
+| **Codex** | NDJSON (json) | `type` field | `obj.item.type` (command/web_search) |
+| **Codex App** | JSON-RPC 2.0 (stdio) | notification `method` | `item.type` (commandExecution/fileChange/webSearch) |
+| **Gemini** | NDJSON (stream-json) | `type` or `event` field | `obj.functionCall.name` |
+| **Grok** | NDJSON (streaming-json) | `type` field | `obj.name` (thought/text/tool_use/tool_result) |
+| **OpenCode** | NDJSON (json) | `type` field | `obj.part.tool` or `obj.part.name` |
+| **Copilot** | NDJSON (json) | Generic fallback | — |
 
-Session ID extraction parses each NDJSON line for `session_id`, `sessionId`, or `conversation_id`.
+Session ID extraction per provider: Claude/Gemini (`sessionId`), Codex (`thread_id`), Codex App (`threadId` via JSON-RPC), Grok (`sessionId` from `end` event only), OpenCode (`sessionID`).
 
 ---
 
@@ -431,7 +455,7 @@ ome/
 │   │   ├── quota-proxy.ts     # cli-jaw quota proxy (30s cache)
 │   │   └── routes.ts          # REST endpoints
 │   └── index.ts         # Public library exports
-├── tests/               # node:test + node:assert/strict (31 tests)
+├── tests/               # node:test + node:assert/strict (95 tests)
 ├── devlog/              # jawdev-format development plans
 ├── structure/           # Architecture documentation
 ├── docs/                # GitHub Pages + screenshots
@@ -442,17 +466,24 @@ ome/
 
 ### Test Suite
 
-31 tests across 7 suites:
+95 tests across 14 suites:
 
 | Suite | Tests | Coverage |
 |-------|-------|----------|
-| spawn/jobs | 6 | Job CRUD, status transitions, path traversal, sort |
-| observe/parser | 7 | Claude/Codex/Gemini/generic parsing, null cases |
+| cli/smoke | 7 | --help, status, registry, init, doctor, dry-run, unknown |
+| dispatch | 3 | Unknown employee, jobId contract, unsupported prompt |
 | observe/inspect | 2 | Inspect existing/non-existent jobs |
+| observe/parser | 19 | Claude/Codex/Gemini/OpenCode/Grok parsing, null cases |
+| observe/progress | 4 | Progress tracking, tool counts, elapsed time |
+| observe/stall | 5 | Stall detection: active/warning/stalled states |
+| observe/summary | 5 | Post-completion: tools, errors, exit codes |
 | seed | 2 | Seed defaults, idempotent |
+| spawn/args | 16 | All 7 providers: new/resume, system prompt rejection |
+| spawn/codex-app-events | 12 | JSON-RPC notification mapping, edge cases |
+| spawn/jobs | 6 | Job CRUD, status transitions, path traversal |
+| spawn/preflight | 3 | CLI path resolution, availability detection |
+| spawn/session-id | 4 | Per-provider session ID extraction |
 | web/routes | 7 | REST endpoints, validation, XSS, body limits |
-| dispatch | 2 | Unknown employee rejection, jobId contract |
-| cli/smoke | 5 | --help, status, registry, init, unknown command |
 
 All tests use temporary `OME_HOME` directories for isolation.
 

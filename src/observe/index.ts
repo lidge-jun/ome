@@ -100,4 +100,12 @@ function extractToolCalls(events: ProgressEvent[]): ParsedToolCall[] {
     return calls;
 }
 
+export { progress } from './progress.js';
+export { watchAll } from './watch-all.js';
+export { checkStall } from './stall.js';
+export { summarize } from './summary.js';
 export type { LiveRunState, ParsedToolCall } from './types.js';
+export type { JobProgress } from './progress.js';
+export type { TaggedEvent } from './watch-all.js';
+export type { StallConfig, StallStatus } from './stall.js';
+export type { JobSummary } from './summary.js';

@@ -109,6 +109,7 @@ ${getDashboardScript()}
 
 function getDashboardScript(): string {
     return `<script>
+function maskEmail(e){const i=e.indexOf('@');if(i<1)return e;const l=e.slice(0,i),d=e.slice(i);return l.length<=2?l[0]+'***'+d:l.slice(0,2)+'***'+d;}
 const CLI_LIST=['claude','codex','codex-app','gemini','copilot','grok','opencode'];
 const MODEL_MAP={claude:['opus','sonnet','haiku'],codex:['gpt-5.5','o3','o4-mini'],'codex-app':['gpt-5.5','gpt-5.4','gpt-5.4-mini'],gemini:['gemini-3.1-pro','gemini-2.5-flash'],copilot:['gpt-4o'],grok:['grok-build'],opencode:['']};
 const CLI_SVGS={
@@ -193,7 +194,7 @@ function makeCliCard(cli,entry){
   if(entry.account){
     const acct=document.createElement('div');acct.className='cli-account';
     const parts=[];
-    if(entry.account.email)parts.push(entry.account.email);
+    if(entry.account.email)parts.push(maskEmail(entry.account.email));
     if(entry.account.type)parts.push(entry.account.type);
     if(entry.account.plan)parts.push(entry.account.plan);
     if(entry.account.tier)parts.push(entry.account.tier);

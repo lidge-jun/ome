@@ -8,4 +8,6 @@ export { createJob, readJobMeta, readJobLog, readJobLogFrom, listJobs, listRunni
 export { seedDefaults, defaultEmployees } from './seed/index.js';
 export type { BuildResult } from './spawn/args.js';
 export type { CliPreflightResult } from './spawn/preflight.js';
+export { inspect, watch, progress, watchAll, checkStall, summarize } from './observe/index.js';
+export type { LiveRunState, ParsedToolCall, JobProgress, TaggedEvent, StallConfig, StallStatus, JobSummary } from './observe/index.js';
 export type { Employee, EmployeeInput, AgentCli, QueueItem, SpawnOptions, SpawnResult, DispatchOptions, Job, JobStatus, ProgressEvent, QuotaConfig } from './registry/types.js';
