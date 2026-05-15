@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, readFileSync, appendFileSync, existsSync, readdirSync, unlinkSync, renameSync, openSync, readSync, fstatSync, closeSync } from 'node:fs';
+import { mkdirSync, writeFileSync, writeSync, readFileSync, existsSync, readdirSync, unlinkSync, renameSync, openSync, readSync, fstatSync, closeSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -6,6 +6,8 @@ import type { Job, JobStatus } from '../registry/types.js';
 
 const MAX_JOBS = 50;
 const JOB_ID_RE = /^job-[a-z0-9]+-[a-z0-9]+$/;
+
+const jobFds = new Map<string, number>();
 
 function jobsDir(): string {
     const dir = join(process.env['OME_HOME'] ?? join(homedir(), '.ome'), 'jobs');
@@ -38,7 +40,9 @@ export function createJob(cli: string, prompt: string, model?: string): Job {
         completedAt: null,
     };
     writeJobMeta(id, job);
-    writeFileSync(safeJobPath(id, '.ndjson'), '', 'utf8');
+    const logPath = safeJobPath(id, '.ndjson');
+    writeFileSync(logPath, '', 'utf8');
+    jobFds.set(id, openSync(logPath, 'a'));
     pruneJobs();
     return job;
 }
@@ -70,9 +74,25 @@ export function cancelJob(id: string): void {
 
 export function appendJobLog(id: string, line: string): void {
     if (!isValidJobId(id)) return;
+    const fd = jobFds.get(id);
+    if (fd != null) {
+        const buf = Buffer.from(`${line}\n`, 'utf8');
+        writeSync(fd, buf);
+        return;
+    }
     const logFile = safeJobPath(id, '.ndjson');
     if (!existsSync(logFile)) return;
-    appendFileSync(logFile, `${line}\n`, 'utf8');
+    const newFd = openSync(logFile, 'a');
+    jobFds.set(id, newFd);
+    writeSync(newFd, Buffer.from(`${line}\n`, 'utf8'));
+}
+
+export function closeJobStream(id: string): void {
+    const fd = jobFds.get(id);
+    if (fd != null) {
+        try { closeSync(fd); } catch { /* already closed */ }
+        jobFds.delete(id);
+    }
 }
 
 export function readJobMeta(id: string): Job | null {
@@ -117,6 +137,36 @@ export function listJobs(): Job[] {
         try { jobs.push(JSON.parse(readFileSync(join(dir, f), 'utf8'))); } catch { /* skip corrupt */ }
     }
     return jobs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function listRunningJobs(): Job[] {
+    return listJobs().filter(j => j.status === 'running');
+}
+
+export function isProcessAlive(pid: number): boolean {
+    try {
+        process.kill(pid, 0);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export function reconcileStaleJobs(): number {
+    const running = listRunningJobs();
+    let reconciled = 0;
+    for (const job of running) {
+        if (!job.pid || !isProcessAlive(job.pid)) {
+            updateJob(job.id, {
+                status: 'failed',
+                phase: 'abandoned',
+                pid: null,
+                completedAt: new Date().toISOString(),
+            });
+            reconciled++;
+        }
+    }
+    return reconciled;
 }
 
 function pruneJobs(): void {

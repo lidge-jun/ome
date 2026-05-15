@@ -67,6 +67,10 @@ export function addEmployee(input: EmployeeInput): Employee {
 
 export function removeEmployee(name: string): boolean {
     const d = getDb();
+    const emp = findEmployee(name);
+    if (emp) {
+        d.prepare('DELETE FROM employee_sessions WHERE employee_id = ?').run(emp.id);
+    }
     const result = d.prepare('DELETE FROM employees WHERE name = ?').run(name);
     return result.changes > 0;
 }
@@ -99,9 +103,14 @@ export function getQuota(): QuotaConfig {
 
 export function setQuota(config: Partial<QuotaConfig>): void {
     const d = getDb();
+    const existing = getQuota();
+    const merged = {
+        dailyLimit: config.dailyLimit ?? existing.dailyLimit,
+        hourlyLimit: config.hourlyLimit ?? existing.hourlyLimit,
+    };
     d.prepare(
         "INSERT INTO quota_config (key, daily_limit, hourly_limit) VALUES ('default', ?, ?) ON CONFLICT(key) DO UPDATE SET daily_limit = ?, hourly_limit = ?, updated_at = datetime('now')"
-    ).run(config.dailyLimit ?? 0, config.hourlyLimit ?? 0, config.dailyLimit ?? 0, config.hourlyLimit ?? 0);
+    ).run(merged.dailyLimit, merged.hourlyLimit, merged.dailyLimit, merged.hourlyLimit);
 }
 
 export function updateEmployee(name: string, updates: Partial<EmployeeInput>): Employee | null {

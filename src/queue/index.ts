@@ -4,6 +4,22 @@ import { bus } from '../spawn/index.js';
 import type { QueueItem } from '../registry/types.js';
 
 export const messageQueue: QueueItem[] = [];
+let hydrated = false;
+
+function hydrateFromDb(): void {
+    if (hydrated) return;
+    hydrated = true;
+    try {
+        const d = getDb();
+        const rows = d.prepare('SELECT payload FROM queued_messages ORDER BY created_at').all() as { payload: string }[];
+        for (const row of rows) {
+            const item = JSON.parse(row.payload) as QueueItem;
+            if (!messageQueue.some(m => m.id === item.id)) {
+                messageQueue.push(item);
+            }
+        }
+    } catch { /* db may not be initialized yet */ }
+}
 
 let queueHoldId: string | null = null;
 let queueHoldTimer: ReturnType<typeof setTimeout> | null = null;
@@ -33,6 +49,7 @@ export function dequeue(id: string): { removed: boolean; pending: number } {
 }
 
 export function listQueue(): QueueItem[] {
+    hydrateFromDb();
     return messageQueue.slice();
 }
 

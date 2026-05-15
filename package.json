@@ -16,6 +16,10 @@
     "./observe": {
       "import": "./dist/src/observe/index.js",
       "types": "./dist/src/observe/index.d.ts"
+    },
+    "./web": {
+      "import": "./dist/src/web/index.js",
+      "types": "./dist/src/web/index.d.ts"
     }
   },
   "files": [

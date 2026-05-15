@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import type { SpawnOptions, SpawnResult, AgentCli } from '../registry/types.js';
 import { buildArgs } from './args.js';
-import { createJob, updateJob, completeJob, cancelJob, appendJobLog, readJobMeta } from './jobs.js';
+import { createJob, updateJob, completeJob, cancelJob, appendJobLog, closeJobStream, readJobMeta, listRunningJobs, isProcessAlive } from './jobs.js';
 import { terminateProcessTree, scheduleForceKill } from './process-kill.js';
 
 export const bus = new EventEmitter();
@@ -15,7 +15,9 @@ const lineBuffers = new Map<string, string>();
 const cancelledJobs = new Set<string>();
 
 export function isAgentBusy(): boolean {
-    return activeJobs.size > 0;
+    if (activeJobs.size > 0) return true;
+    const persisted = listRunningJobs();
+    return persisted.some(j => j.pid != null && isProcessAlive(j.pid));
 }
 
 export function getActiveJobs(): ReadonlyMap<string, ChildProcess> {
@@ -110,6 +112,7 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                 }
                 lineBuffers.delete(job.id);
                 activeJobs.delete(job.id);
+                closeJobStream(job.id);
                 if (cancelledJobs.has(job.id)) {
                     cancelledJobs.delete(job.id);
                     cancelJob(job.id);

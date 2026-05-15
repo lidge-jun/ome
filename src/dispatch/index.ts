@@ -44,14 +44,14 @@ export async function dispatch(
         env: opts.env,
     };
 
-    const { jobId, result } = spawnAgent(task, spawnOpts);
+    let { jobId, result } = spawnAgent(task, spawnOpts);
     let sr = await result;
 
     if (canResume && sr.code !== 0 && isStaleSession(sr.text + (sr.stderr ?? ''))) {
         clearEmployeeSession(emp.id);
         const retry = spawnAgent(task, { ...spawnOpts, sessionId: undefined });
         sr = await retry.result;
-        sr.jobId = retry.jobId;
+        jobId = retry.jobId;
     }
 
     if (sr.code === 0 && sr.sessionId) {

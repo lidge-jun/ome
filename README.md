@@ -45,7 +45,7 @@ cd ome && npm install && npm run build
 # Link globally (optional)
 npm link
 
-# Seed default employees (Claude, Codex, Gemini)
+# Seed default employees (Frontend, Backend, Data, Docs)
 ome init
 
 # Spawn a one-off agent
@@ -200,13 +200,14 @@ Dashboard features:
 ome init
 ```
 
-Registers 3 default employees (idempotent):
+Registers 4 default employees (idempotent):
 
 | Name | CLI | Model | Role |
 |------|-----|-------|------|
-| Claude | claude | sonnet | General-purpose assistant |
-| Codex | codex | o3-pro | Code generation and review |
-| Gemini | gemini | *(default)* | Research and analysis |
+| Frontend | claude | opus | UI/UX, CSS, components |
+| Backend | codex | gpt-5.5 | API, DB, server logic |
+| Data | gemini | gemini-3.1-pro | Data pipeline, analysis, ML |
+| Docs | codex | *(default)* | Documentation, README, API docs |
 
 ### `ome status`
 

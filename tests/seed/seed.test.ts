@@ -19,18 +19,18 @@ describe('seedDefaults', () => {
         try { rmSync(tmpDir, { recursive: true, force: true }); } catch { /* noop */ }
     });
 
-    it('seeds 3 default employees', () => {
+    it('seeds 4 default employees', () => {
         const { added, skipped } = seedDefaults();
-        assert.equal(added.length, 3);
+        assert.equal(added.length, 4);
         assert.equal(skipped.length, 0);
-        assert.equal(listEmployees().length, 3);
+        assert.equal(listEmployees().length, 4);
     });
 
     it('is idempotent — second call skips all', () => {
         seedDefaults();
         const { added, skipped } = seedDefaults();
         assert.equal(added.length, 0);
-        assert.equal(skipped.length, 3);
-        assert.equal(listEmployees().length, 3);
+        assert.equal(skipped.length, 4);
+        assert.equal(listEmployees().length, 4);
     });
 });
