@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import type { Employee, EmployeeInput, QuotaConfig } from './types.js';
+import type { Employee, EmployeeInput, EmployeeSession, QuotaConfig } from './types.js';
 
 let db: Database.Database | null = null;
 
@@ -133,4 +133,27 @@ export function addEmployeeIfNotExists(input: EmployeeInput): { added: boolean; 
     const emp = getEmployeeById(id);
     if (!emp) throw new Error(`Employee "${input.name}" not found after successful INSERT`);
     return { added: true, employee: emp };
+}
+
+// --- Employee session management ---
+
+export function getEmployeeSession(employeeId: string): EmployeeSession | null {
+    const d = getDb();
+    const row = d.prepare(
+        'SELECT employee_id as employeeId, session_id as sessionId, cli, model, created_at as createdAt FROM employee_sessions WHERE employee_id = ?'
+    ).get(employeeId) as EmployeeSession | undefined;
+    return row ?? null;
+}
+
+export function upsertEmployeeSession(employeeId: string, sessionId: string, cli: string, model: string): void {
+    const d = getDb();
+    d.prepare(
+        `INSERT INTO employee_sessions (employee_id, session_id, cli, model) VALUES (?, ?, ?, ?)
+         ON CONFLICT(employee_id) DO UPDATE SET session_id = ?, cli = ?, model = ?, created_at = datetime('now')`
+    ).run(employeeId, sessionId, cli, model, sessionId, cli, model);
+}
+
+export function clearEmployeeSession(employeeId: string): void {
+    const d = getDb();
+    d.prepare('DELETE FROM employee_sessions WHERE employee_id = ?').run(employeeId);
 }

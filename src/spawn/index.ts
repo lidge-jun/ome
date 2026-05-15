@@ -30,6 +30,7 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
 
     const job = createJob(cli, prompt, opts.model);
     lineBuffers.set(job.id, '');
+    let detectedSessionId: string | undefined;
 
     const result = new Promise<SpawnResult>((resolve, reject) => {
         try {
@@ -66,6 +67,13 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                     const line = buf.slice(0, nlIdx).trim();
                     buf = buf.slice(nlIdx + 1);
                     if (line) {
+                        if (!detectedSessionId) {
+                            try {
+                                const j = JSON.parse(line);
+                                const sid = j.session_id ?? j.sessionId ?? j.conversation_id;
+                                if (typeof sid === 'string' && sid) detectedSessionId = sid;
+                            } catch { /* not JSON */ }
+                        }
                         appendJobLog(job.id, line);
                         bus.emit('job_log', { jobId: job.id, line });
                     }
@@ -117,6 +125,7 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                     text: stdout,
                     code: code ?? 1,
                     jobId: job.id,
+                    sessionId: detectedSessionId,
                     stderr: stderr || undefined,
                     durationMs: Date.now() - startTime,
                 });

@@ -30,11 +30,20 @@ export interface SpawnOptions {
     cli?: AgentCli;
     model?: string;
     systemPrompt?: string;
+    sessionId?: string;
     cwd?: string;
     timeout?: number;
     env?: Record<string, string>;
     onStdout?: (chunk: string) => void;
     onStderr?: (chunk: string) => void;
+}
+
+export interface EmployeeSession {
+    employeeId: string;
+    sessionId: string;
+    cli: string;
+    model: string;
+    createdAt: string;
 }
 
 export interface SpawnResult {
