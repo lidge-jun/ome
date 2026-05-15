@@ -64,6 +64,27 @@ describe('parseLine', () => {
         assert.equal(reasoningEv?.message, 'thinking');
     });
 
+    it('parses OpenCode tool events with stable tool names', () => {
+        const useLine = JSON.stringify({
+            type: 'tool_use',
+            sessionID: 'ses_1',
+            part: { type: 'tool', callID: 'call_1', tool: 'read', input: { filePath: 'README.md' } },
+        });
+        const resultLine = JSON.stringify({
+            type: 'tool_result',
+            sessionID: 'ses_1',
+            part: { type: 'tool', callID: 'call_1', tool: 'read', output: 'contents' },
+        });
+
+        const useEv = parseLine('opencode', useLine);
+        const resultEv = parseLine('opencode', resultLine);
+
+        assert.equal(useEv?.type, 'tool_use');
+        assert.equal(useEv?.toolName, 'read');
+        assert.equal(resultEv?.type, 'tool_result');
+        assert.equal(resultEv?.toolName, 'read');
+    });
+
     it('returns null for empty/whitespace', () => {
         assert.equal(parseLine('claude', ''), null);
         assert.equal(parseLine('claude', '   '), null);

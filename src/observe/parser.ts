@@ -96,6 +96,17 @@ function parseGeminiEvent(obj: Record<string, unknown>, ts: string): ProgressEve
 function parseOpenCodeEvent(obj: Record<string, unknown>, ts: string): ProgressEvent {
     const type = String(obj['type'] ?? 'unknown');
     const part = asRecord(obj['part']);
+    if ((type === 'tool_use' || type === 'tool_result') && part) {
+        const toolName = String(part['tool'] ?? part['name'] ?? obj['tool'] ?? type);
+        return {
+            type,
+            message: JSON.stringify(part).slice(0, 200),
+            phase: null,
+            toolName,
+            raw: obj,
+            ts,
+        };
+    }
     if (type === 'text' && part) {
         return { type: 'assistant', message: String(part['text'] ?? '').slice(0, 200), phase: null, toolName: null, raw: obj, ts };
     }
