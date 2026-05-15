@@ -38,6 +38,9 @@ export function initDb(dbPath: string): Database.Database {
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
     `);
+    try {
+        db.exec(`ALTER TABLE employees ADD COLUMN prompt TEXT`);
+    } catch { /* column already exists */ }
     return db;
 }
 
@@ -57,8 +60,8 @@ export function addEmployee(input: EmployeeInput): Employee {
     const d = getDb();
     const id = randomUUID();
     d.prepare(
-        'INSERT INTO employees (id, name, cli, model, role) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, input.name, input.cli, input.model ?? null, input.role ?? null);
+        'INSERT INTO employees (id, name, cli, model, role, prompt) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, input.name, input.cli, input.model ?? null, input.role ?? null, input.prompt ?? null);
     return getEmployeeById(id)!;
 }
 
@@ -70,20 +73,20 @@ export function removeEmployee(name: string): boolean {
 
 export function listEmployees(): Employee[] {
     const d = getDb();
-    return d.prepare('SELECT id, name, cli, model, role, created_at as createdAt FROM employees ORDER BY created_at').all() as Employee[];
+    return d.prepare('SELECT id, name, cli, model, role, prompt, created_at as createdAt FROM employees ORDER BY created_at').all() as Employee[];
 }
 
 export function findEmployee(name: string): Employee | null {
     const d = getDb();
-    const exact = d.prepare('SELECT id, name, cli, model, role, created_at as createdAt FROM employees WHERE name = ?').get(name) as Employee | undefined;
+    const exact = d.prepare('SELECT id, name, cli, model, role, prompt, created_at as createdAt FROM employees WHERE name = ?').get(name) as Employee | undefined;
     if (exact) return exact;
-    const lower = d.prepare('SELECT id, name, cli, model, role, created_at as createdAt FROM employees WHERE LOWER(name) = LOWER(?)').get(name) as Employee | undefined;
+    const lower = d.prepare('SELECT id, name, cli, model, role, prompt, created_at as createdAt FROM employees WHERE LOWER(name) = LOWER(?)').get(name) as Employee | undefined;
     return lower ?? null;
 }
 
 function getEmployeeById(id: string): Employee | null {
     const d = getDb();
-    return (d.prepare('SELECT id, name, cli, model, role, created_at as createdAt FROM employees WHERE id = ?').get(id) as Employee | undefined) ?? null;
+    return (d.prepare('SELECT id, name, cli, model, role, prompt, created_at as createdAt FROM employees WHERE id = ?').get(id) as Employee | undefined) ?? null;
 }
 
 export function getQuota(): QuotaConfig {
@@ -106,8 +109,8 @@ export function updateEmployee(name: string, updates: Partial<EmployeeInput>): E
     if (!existing) return null;
     const d = getDb();
     d.prepare(
-        'UPDATE employees SET cli = ?, model = ?, role = ? WHERE name = ?'
-    ).run(updates.cli ?? existing.cli, updates.model ?? existing.model, updates.role ?? existing.role, name);
+        'UPDATE employees SET cli = ?, model = ?, role = ?, prompt = ? WHERE name = ?'
+    ).run(updates.cli ?? existing.cli, updates.model ?? existing.model, updates.role ?? existing.role, updates.prompt !== undefined ? updates.prompt : existing.prompt, name);
     return findEmployee(name);
 }
 
@@ -118,8 +121,8 @@ export function addEmployeeIfNotExists(input: EmployeeInput): { added: boolean; 
     const d = getDb();
     const id = randomUUID();
     const result = d.prepare(
-        'INSERT OR IGNORE INTO employees (id, name, cli, model, role) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, input.name, input.cli, input.model ?? null, input.role ?? null);
+        'INSERT OR IGNORE INTO employees (id, name, cli, model, role, prompt) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, input.name, input.cli, input.model ?? null, input.role ?? null, input.prompt ?? null);
 
     if (result.changes === 0) {
         const winner = findEmployee(input.name);

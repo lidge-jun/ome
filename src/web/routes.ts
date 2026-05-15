@@ -55,6 +55,7 @@ export function handleApiRequest(req: IncomingMessage, res: ServerResponse, url:
                     cli: parsed['cli'] ? String(parsed['cli']) : undefined,
                     model: parsed['model'] ? String(parsed['model']) : undefined,
                     role: parsed['role'] ? String(parsed['role']) : undefined,
+                    prompt: 'prompt' in parsed ? (parsed['prompt'] ? String(parsed['prompt']) : null) : undefined,
                 });
                 if (!emp) { error(res, 404, 'employee not found'); return; }
                 json(res, emp);

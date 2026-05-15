@@ -6,6 +6,7 @@ export interface Employee {
     cli: AgentCli;
     model: string | null;
     role: string | null;
+    prompt: string | null;
     createdAt: string;
 }
 
@@ -14,6 +15,7 @@ export interface EmployeeInput {
     cli: AgentCli;
     model?: string | null;
     role?: string | null;
+    prompt?: string | null;
 }
 
 export interface QueueItem {

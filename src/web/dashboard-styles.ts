@@ -119,6 +119,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #job-detail h3{font-size:.95rem;font-weight:600;margin-bottom:10px}
 #job-detail pre{white-space:pre-wrap;font-size:.8rem;max-height:400px;overflow:auto;background:#fafafa;padding:12px;border-radius:8px;border:1px solid #eee}
 
+/* Side panel */
+.side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s}
+.side-overlay.open{opacity:1;pointer-events:auto}
+.side-panel{position:fixed;top:0;right:0;bottom:0;width:420px;background:#fff;border-left:1px solid #e0e0e0;z-index:1000;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.08)}
+.side-panel.open{transform:translateX(0)}
+.side-panel-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #eee}
+.side-panel-header h3{font-size:1.1rem;font-weight:700}
+.side-panel-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:#999;padding:4px 8px;line-height:1}
+.side-panel-close:hover{color:#333}
+.side-panel-body{flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.side-label{font-size:.7rem;text-transform:uppercase;color:#888;letter-spacing:.3px}
+.side-textarea{flex:1;min-height:200px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:.85rem;font-family:monospace;resize:vertical;background:#fafafa;line-height:1.5}
+.side-textarea:focus{outline:none;border-color:#90caf9}
+.side-actions{text-align:right;padding-top:8px}
+.side-save{background:#1a1a1a;color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:.85rem;cursor:pointer}
+.side-save:hover{background:#333}
+.clickable{cursor:pointer}
+.clickable:hover{text-decoration:underline}
+
 /* Toast */
 #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
 .toast{padding:10px 18px;border-radius:8px;font-size:.85rem;color:#fff;opacity:0;transform:translateX(40px);transition:opacity .3s,transform .3s;box-shadow:0 2px 8px rgba(0,0,0,.15)}

@@ -85,6 +85,21 @@ export function getDashboardHtml(): string {
   </div>
 </main>
 
+<div id="side-panel" class="side-panel">
+  <div class="side-panel-header">
+    <h3 id="side-panel-title"></h3>
+    <button class="side-panel-close" onclick="closeSidePanel()">&times;</button>
+  </div>
+  <div class="side-panel-body">
+    <label class="side-label">System Prompt</label>
+    <textarea id="side-prompt" class="side-textarea" placeholder="이 직원에게 전달할 시스템 프롬프트를 입력하세요..."></textarea>
+    <div class="side-actions">
+      <button class="side-save" onclick="savePrompt()">Save</button>
+    </div>
+  </div>
+</div>
+<div id="side-overlay" class="side-overlay" onclick="closeSidePanel()"></div>
+
 <div id="toast-container"></div>
 
 ${getDashboardScript()}
@@ -245,7 +260,8 @@ function renderEmployeeCards(emps,liveQuota){
     const authOk=cliEntry&&cliEntry.authenticated!==false;
     const dot=document.createElement('span');dot.className='dot '+(authOk?'idle':'warn');
     const iconSpan=document.createElement('span');iconSpan.className='emp-cli-icon';iconSpan.innerHTML=CLI_SVGS[e.cli]||'';
-    const nameEl=document.createElement('span');nameEl.className='name';nameEl.textContent=e.name;
+    const nameEl=document.createElement('span');nameEl.className='name clickable';nameEl.textContent=e.name;
+    nameEl.onclick=()=>openSidePanel(e.name,e.prompt);
     const del=document.createElement('button');del.className='del-btn';del.textContent='\\u00d7';
     del.onclick=()=>delEmp(e.name);
     header.appendChild(dot);header.appendChild(iconSpan);header.appendChild(nameEl);header.appendChild(del);
@@ -388,6 +404,30 @@ async function inspectJob(id){
   const data=await fetch('/api/jobs/'+encodeURIComponent(id)).then(r=>r.json());
   document.getElementById('job-detail').style.display='block';
   document.getElementById('job-detail-content').textContent=JSON.stringify(data,null,2);
+}
+
+let _sidePanelName=null;
+function openSidePanel(name,prompt){
+  _sidePanelName=name;
+  document.getElementById('side-panel-title').textContent=name;
+  document.getElementById('side-prompt').value=prompt||'';
+  document.getElementById('side-panel').classList.add('open');
+  document.getElementById('side-overlay').classList.add('open');
+}
+function closeSidePanel(){
+  _sidePanelName=null;
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('side-overlay').classList.remove('open');
+}
+async function savePrompt(){
+  if(!_sidePanelName)return;
+  const prompt=document.getElementById('side-prompt').value.trim()||null;
+  const resp=await fetch('/api/employees/'+encodeURIComponent(_sidePanelName),{
+    method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt})
+  });
+  if(resp.ok){showToast(_sidePanelName+' prompt saved','success');closeSidePanel();loadAll()}
+  else{showToast('Save failed','error')}
 }
 
 document.getElementById('refresh-mode').addEventListener('change',e=>{
