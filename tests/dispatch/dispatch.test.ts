@@ -38,4 +38,14 @@ describe('dispatch', () => {
         assert.equal(typeof result.code, 'number');
         assert.ok(result.jobId, 'SpawnResult must include jobId after P2');
     });
+
+    it('rejects unsupported employee prompts before spawning unsupported CLIs', async () => {
+        const { dispatch } = await import('../../src/dispatch/index.js');
+        addEmployee({ name: 'Backend', cli: 'codex', role: 'server', prompt: 'You are Backend.' });
+
+        await assert.rejects(
+            () => dispatch('Backend', 'do work'),
+            /systemPrompt is not supported for CLI "codex"/,
+        );
+    });
 });

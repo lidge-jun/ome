@@ -52,6 +52,28 @@ describe('CLI smoke', () => {
         assert.ok(out2.includes('Skipped'));
     });
 
+    it('spawn --dry-run prints provider contract without spawning', () => {
+        const out = run(['spawn', '--dry-run', '--cli', 'codex', '--model', 'gpt-5.5', 'hello']);
+        const body = JSON.parse(out) as {
+            cli: string;
+            args: string[];
+            promptTransport: string;
+            stdinPrompt: boolean;
+        };
+
+        assert.equal(body.cli, 'codex');
+        assert.deepEqual(body.args, ['exec', '--json', '-m', 'gpt-5.5']);
+        assert.equal(body.promptTransport, 'stdin');
+        assert.equal(body.stdinPrompt, true);
+    });
+
+    it('doctor reports CLI preflight table', () => {
+        const out = run(['doctor']);
+        assert.ok(out.includes('CLI Preflight'));
+        assert.ok(out.includes('claude'));
+        assert.ok(out.includes('codex'));
+    });
+
     it('unknown command exits with code 1', () => {
         try {
             run(['nonexistent']);
