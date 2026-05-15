@@ -62,7 +62,14 @@ describe('CLI smoke', () => {
         };
 
         assert.equal(body.cli, 'codex');
-        assert.deepEqual(body.args, ['exec', '--json', '-m', 'gpt-5.5']);
+        assert.deepEqual(body.args, [
+            'exec',
+            '--json',
+            '--dangerously-bypass-approvals-and-sandbox',
+            '--skip-git-repo-check',
+            '-m',
+            'gpt-5.5',
+        ]);
         assert.equal(body.promptTransport, 'stdin');
         assert.equal(body.stdinPrompt, true);
     });

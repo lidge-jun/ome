@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { homedir } from 'node:os';
 import { buildArgs } from '../../src/spawn/args.js';
 
 describe('spawn args', () => {
@@ -14,9 +15,10 @@ describe('spawn args', () => {
             '--verbose',
             '--output-format',
             'stream-json',
+            '--include-partial-messages',
             '--model',
             'opus',
-            '--system-prompt',
+            '--append-system-prompt',
             'You are Frontend.',
         ]);
         assert.equal(result.stdinPrompt, true);
@@ -25,7 +27,14 @@ describe('spawn args', () => {
     it('builds Codex exec args without known-invalid flags', () => {
         const result = buildArgs('codex', 'hello', { model: 'gpt-5.5' });
 
-        assert.deepEqual(result.args, ['exec', '--json', '-m', 'gpt-5.5']);
+        assert.deepEqual(result.args, [
+            'exec',
+            '--json',
+            '--dangerously-bypass-approvals-and-sandbox',
+            '--skip-git-repo-check',
+            '-m',
+            'gpt-5.5',
+        ]);
         assert.equal(result.stdinPrompt, true);
         assertKnownInvalidFlagsAbsent(result.args);
     });
@@ -36,7 +45,17 @@ describe('spawn args', () => {
             model: 'gpt-5.5',
         });
 
-        assert.deepEqual(result.args, ['exec', 'resume', '--json', '-m', 'gpt-5.5', 'sid-123', 'resume prompt']);
+        assert.deepEqual(result.args, [
+            'exec',
+            'resume',
+            '--json',
+            '--dangerously-bypass-approvals-and-sandbox',
+            '--skip-git-repo-check',
+            '-m',
+            'gpt-5.5',
+            'sid-123',
+            'resume prompt',
+        ]);
         assert.equal(result.stdinPrompt, false);
         assertKnownInvalidFlagsAbsent(result.args);
     });
@@ -44,7 +63,19 @@ describe('spawn args', () => {
     it('builds Gemini args without unsupported system-prompt flag', () => {
         const result = buildArgs('gemini', 'hello', { model: 'gemini-3.1-pro' });
 
-        assert.deepEqual(result.args, ['--prompt', 'hello', '--output-format', 'stream-json', '--model', 'gemini-3.1-pro']);
+        assert.deepEqual(result.args, [
+            '--prompt',
+            'hello',
+            '--output-format',
+            'stream-json',
+            '--skip-trust',
+            '--approval-mode',
+            'yolo',
+            '--include-directories',
+            homedir(),
+            '--model',
+            'gemini-3.1-pro',
+        ]);
         assert.equal(result.stdinPrompt, false);
         assert.equal(result.args.includes('--system-prompt'), false);
     });
@@ -80,6 +111,11 @@ describe('spawn args', () => {
             'continue',
             '--output-format',
             'stream-json',
+            '--skip-trust',
+            '--approval-mode',
+            'yolo',
+            '--include-directories',
+            homedir(),
             '--model',
             'gemini-3.1-pro',
         ]);
@@ -89,11 +125,13 @@ describe('spawn args', () => {
     it('builds OpenCode run args for new and resume sessions', () => {
         const fresh = buildArgs('opencode', 'hello', { model: 'sonnet' });
         const resumed = buildArgs('opencode', 'continue', { sessionId: 'sid-456', model: 'sonnet' });
+        const defaultModel = buildArgs('opencode', 'hello');
 
-        assert.deepEqual(fresh.args, ['run', '--format', 'json', '-m', 'sonnet', 'hello']);
+        assert.deepEqual(fresh.args, ['run', '--thinking', '--format', 'json', '-m', 'sonnet', 'hello']);
         assert.equal(fresh.stdinPrompt, false);
-        assert.deepEqual(resumed.args, ['run', '-s', 'sid-456', '--format', 'json', '-m', 'sonnet', 'continue']);
+        assert.deepEqual(resumed.args, ['run', '-s', 'sid-456', '--thinking', '--format', 'json', '-m', 'sonnet', 'continue']);
         assert.equal(resumed.stdinPrompt, false);
+        assert.deepEqual(defaultModel.args, ['run', '--thinking', '--format', 'json', '-m', 'opencode-go/kimi-k2.6', 'hello']);
     });
 
     it('keeps generic executables raw', () => {

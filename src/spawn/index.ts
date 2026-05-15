@@ -15,6 +15,11 @@ const activeJobs = new Map<string, ChildProcess>();
 const lineBuffers = new Map<string, string>();
 const cancelledJobs = new Set<string>();
 
+function isBrokenPipeError(err: unknown): boolean {
+    const code = (err as { code?: unknown })?.code;
+    return code === 'EPIPE' || code === 'ERR_STREAM_DESTROYED';
+}
+
 export function isAgentBusy(): boolean {
     if (activeJobs.size > 0) return true;
     const persisted = listRunningJobs();
@@ -141,10 +146,24 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                 reject(err);
             });
 
-            if (stdinPrompt) {
-                child.stdin?.write(prompt);
+            child.stdin?.on('error', (err) => {
+                if (!isBrokenPipeError(err)) {
+                    appendJobLog(job.id, `[stdin:error] ${err.message}\n`);
+                }
+            });
+
+            if (stdinPrompt && child.stdin) {
+                try {
+                    child.stdin.write(prompt);
+                } catch (err) {
+                    if (!isBrokenPipeError(err)) throw err;
+                }
             }
-            child.stdin?.end();
+            try {
+                child.stdin?.end();
+            } catch (err) {
+                if (!isBrokenPipeError(err)) throw err;
+            }
         } catch (err) {
             lineBuffers.delete(job.id);
             completeJob(job.id, 1);

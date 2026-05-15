@@ -1,4 +1,7 @@
+import { homedir } from 'node:os';
 import type { AgentCli, SpawnOptions } from '../registry/types.js';
+
+const DEFAULT_OPENCODE_MODEL = 'opencode-go/kimi-k2.6';
 
 export interface BuildResult {
     args: string[];
@@ -58,39 +61,73 @@ function assertSystemPromptSupported(cli: AgentCli, opts: SpawnOptions): void {
 }
 
 function buildClaudeNew(opts: SpawnOptions): string[] {
-    const args = ['--print', '--verbose', '--output-format', 'stream-json'];
+    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--include-partial-messages'];
     if (opts.model) args.push('--model', opts.model);
-    if (opts.systemPrompt) args.push('--system-prompt', opts.systemPrompt);
+    if (opts.systemPrompt) args.push('--append-system-prompt', opts.systemPrompt);
     return args;
 }
 
 function buildClaudeResume(sid: string, opts: SpawnOptions): string[] {
-    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--resume', sid];
+    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--include-partial-messages', '--resume', sid];
     if (opts.model) args.push('--model', opts.model);
+    if (opts.systemPrompt) args.push('--append-system-prompt', opts.systemPrompt);
     return args;
 }
 
 function buildCodexNew(opts: SpawnOptions): string[] {
-    const args = ['exec', '--json'];
+    const args = [
+        'exec',
+        '--json',
+        '--dangerously-bypass-approvals-and-sandbox',
+        '--skip-git-repo-check',
+    ];
     if (opts.model) args.push('-m', opts.model);
     return args;
 }
 
 function buildCodexResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
-    const args = ['exec', 'resume', '--json'];
+    const args = [
+        'exec',
+        'resume',
+        '--json',
+        '--dangerously-bypass-approvals-and-sandbox',
+        '--skip-git-repo-check',
+    ];
     if (opts.model) args.push('-m', opts.model);
     args.push(sid, prompt);
     return args;
 }
 
 function buildGeminiNew(prompt: string, opts: SpawnOptions): string[] {
-    const args = ['--prompt', prompt, '--output-format', 'stream-json'];
+    const args = [
+        '--prompt',
+        prompt,
+        '--output-format',
+        'stream-json',
+        '--skip-trust',
+        '--approval-mode',
+        'yolo',
+        '--include-directories',
+        homedir(),
+    ];
     if (opts.model) args.push('--model', opts.model);
     return args;
 }
 
 function buildGeminiResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
-    const args = ['--resume', sid, '--prompt', prompt, '--output-format', 'stream-json'];
+    const args = [
+        '--resume',
+        sid,
+        '--prompt',
+        prompt,
+        '--output-format',
+        'stream-json',
+        '--skip-trust',
+        '--approval-mode',
+        'yolo',
+        '--include-directories',
+        homedir(),
+    ];
     if (opts.model) args.push('--model', opts.model);
     return args;
 }
@@ -108,15 +145,15 @@ function buildCopilotResume(sid: string, prompt: string, opts: SpawnOptions): Bu
 }
 
 function buildOpencodeNew(prompt: string, opts: SpawnOptions): string[] {
-    const args = ['run', '--format', 'json'];
-    if (opts.model) args.push('-m', opts.model);
+    const args = ['run', '--thinking', '--format', 'json'];
+    args.push('-m', opts.model ?? DEFAULT_OPENCODE_MODEL);
     args.push(prompt);
     return args;
 }
 
 function buildOpencodeResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
-    const args = ['run', '-s', sid, '--format', 'json'];
-    if (opts.model) args.push('-m', opts.model);
+    const args = ['run', '-s', sid, '--thinking', '--format', 'json'];
+    args.push('-m', opts.model ?? DEFAULT_OPENCODE_MODEL);
     args.push(prompt);
     return args;
 }
