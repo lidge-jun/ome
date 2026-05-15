@@ -29,6 +29,7 @@ export interface QueueItem {
 export interface SpawnOptions {
     cli?: AgentCli;
     model?: string;
+    systemPrompt?: string;
     cwd?: string;
     timeout?: number;
     env?: Record<string, string>;

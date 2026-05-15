@@ -15,6 +15,7 @@ export async function dispatch(
     const { jobId, result } = spawnAgent(task, {
         cli: emp.cli,
         model: emp.model ?? undefined,
+        systemPrompt: emp.prompt ?? undefined,
         cwd: opts.cwd,
         timeout: opts.timeout ?? 600_000,
         env: opts.env,
