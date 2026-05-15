@@ -54,7 +54,7 @@
 | D3 | Gemini output format is not pinned. | MEDIUM | fixed locally with `--output-format stream-json`. |
 | D4 | Copilot output is set to JSON but parser contract is not tested. | MEDIUM | partially configured; unverified. |
 | D5 | OpenCode output format is not pinned. | MEDIUM | fixed locally with `--thinking --format json` and cli-jaw-aligned default `opencode-go/kimi-k2.6`. |
-| D6 | `watch` / `inspect` may parse provider output incorrectly while the CLI itself succeeds. | MEDIUM | fixed for observed Codex/Gemini/OpenCode event fixtures; broader provider enrichment remains future hardening. |
+| D6 | `watch` / `inspect` may parse provider output incorrectly while the CLI itself succeeds. | MEDIUM | fixed for observed Codex/Gemini/OpenCode event fixtures, including OpenCode text/reasoning/tool events; broader provider enrichment remains future hardening. |
 
 ## E. Defaults and Registry
 

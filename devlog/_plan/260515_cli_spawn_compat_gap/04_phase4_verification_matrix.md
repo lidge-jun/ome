@@ -92,7 +92,7 @@ Each output should show:
 - [x] System prompt policy selected and implemented.
 - [x] Dispatch tests cover at least one non-Claude employee.
 - [x] Session ID extraction tests cover Codex `thread_id` and OpenCode `sessionID`.
-- [x] Parser fixtures cover Codex `agent_message`/tool events, Gemini `tool_name`, and OpenCode text/reasoning events.
+- [x] Parser fixtures cover Codex `agent_message`/tool events, Gemini `tool_name`, and OpenCode text/reasoning/tool events.
 - [x] Live smoke run completed for logged-in CLIs: `claude`, `codex`, `gemini`, `opencode`; `copilot` excluded.
 - [x] `npm run typecheck` passes.
 - [x] `npm test` passes.
