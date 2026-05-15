@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OME — Orchestrated Multi-agent Engine</title>
+<meta name="description" content="Spawn and orchestrate AI agent CLIs as employees from a single unified interface.">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0a;--surface:#111;--border:#1a1a1a;--text:#e0e0e0;--text-dim:#888;--accent:#60a5fa;--accent2:#4ade80;--accent3:#facc15;--danger:#f87171}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:960px;margin:0 auto;padding:0 24px}
+
+/* Hero */
+.hero{padding:80px 0 60px;text-align:center;border-bottom:1px solid var(--border)}
+.hero h1{font-size:3rem;font-weight:800;color:#fff;margin-bottom:8px}
+.hero h1 span{color:var(--accent)}
+.hero p{font-size:1.2rem;color:var(--text-dim);max-width:600px;margin:0 auto 32px}
+.hero-badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:32px}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.8rem;font-weight:600;border:1px solid var(--border)}
+.badge-node{color:var(--accent2);border-color:#1a3a1a}
+.badge-ts{color:var(--accent);border-color:#1a2a3a}
+.badge-mit{color:var(--accent3);border-color:#2a2a1a}
+.cta{display:inline-block;padding:12px 32px;background:var(--accent);color:#000;border-radius:8px;font-weight:700;font-size:1rem;transition:opacity .2s}
+.cta:hover{opacity:.85;text-decoration:none}
+
+/* Section */
+section{padding:60px 0;border-bottom:1px solid var(--border)}
+section h2{font-size:1.8rem;font-weight:700;color:#fff;margin-bottom:24px}
+section h3{font-size:1.2rem;color:var(--accent);margin:24px 0 12px}
+
+/* Feature grid */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.feature h3{margin-top:0;font-size:1.1rem}
+.feature p{color:var(--text-dim);font-size:.95rem}
+.feature-icon{font-size:1.6rem;margin-bottom:12px}
+
+/* Code */
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:.85rem;line-height:1.5;margin:16px 0}
+code{font-family:'SF Mono',Menlo,monospace;font-size:.85rem}
+p code{background:var(--surface);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+
+/* Architecture */
+.arch{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin:24px 0}
+.arch pre{background:var(--bg);border-color:#222;margin:0}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin:16px 0}
+th,td{text-align:left;padding:10px 16px;border-bottom:1px solid var(--border)}
+th{color:var(--text-dim);font-size:.8rem;text-transform:uppercase;font-weight:600}
+td{font-size:.9rem}
+td code{background:var(--bg);padding:2px 6px;border-radius:4px}
+
+/* Footer */
+footer{padding:40px 0;text-align:center;color:var(--text-dim);font-size:.85rem}
+
+/* Responsive */
+@media(max-width:640px){
+  .hero h1{font-size:2rem}
+  .hero p{font-size:1rem}
+  .features{grid-template-columns:1fr}
+  pre{font-size:.75rem;padding:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- Hero -->
+<div class="hero">
+<h1><span>OME</span></h1>
+<p>Orchestrated Multi-agent Engine — Spawn and orchestrate AI agent CLIs as employees from a single unified interface.</p>
+<div class="hero-badges">
+<span class="badge badge-node">Node.js &ge; 20</span>
+<span class="badge badge-ts">TypeScript Strict</span>
+<span class="badge badge-mit">MIT License</span>
+</div>
+<a class="cta" href="https://github.com/lidge-jun/ome">View on GitHub</a>
+</div>
+
+<!-- Features -->
+<section>
+<h2>Features</h2>
+<div class="features">
+<div class="feature">
+<div class="feature-icon">&#9889;</div>
+<h3>Direct Spawn</h3>
+<p>Run any AI CLI with a single command. No registration needed. <code>ome spawn --cli claude "Fix the bug"</code></p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128101;</div>
+<h3>Employee Registry</h3>
+<p>Register named employees with preset CLI, model, and role. Dispatch tasks by name.</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128196;</div>
+<h3>Job Tracking</h3>
+<p>Every spawn creates a persistent job with ID, metadata, and streaming NDJSON log. Max 50 jobs, auto-pruned.</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128065;</div>
+<h3>Live Observation</h3>
+<p>Watch running jobs in real-time from any terminal. Cross-process safe file-tailing.</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#127760;</div>
+<h3>Web Dashboard</h3>
+<p>Dark-themed management UI. Employee CRUD, quota config, job monitoring. Zero external dependencies.</p>
+</div>
+<div class="feature">
+<div class="feature-icon">&#128274;</div>
+<h3>Security Hardened</h3>
+<p>XSS-safe rendering, path traversal guards, body size limits, localhost-only default bind.</p>
+</div>
+</div>
+</section>
+
+<!-- Quick Start -->
+<section>
+<h2>Quick Start</h2>
+<pre><code># Install
+git clone https://github.com/lidge-jun/ome.git
+cd ome && npm install && npm run build
+
+# Seed default employees (Claude, Codex, Gemini)
+ome init
+
+# Spawn a one-off agent
+ome spawn --cli claude --model opus "Fix the login bug"
+
+# Dispatch to a registered employee
+ome dispatch --agent "Claude" --task "Review the PR"
+
+# Watch a job live
+ome watch job-m1abc-x9f3
+
+# Start the web dashboard
+ome web</code></pre>
+</section>
+
+<!-- Architecture -->
+<section>
+<h2>Architecture</h2>
+<div class="arch">
+<pre><code>ome spawn / ome dispatch
+  |
+  +-- spawn/index.ts --> spawn CLI process
+  |     +-- jobs.ts --> ~/.ome/jobs/{id}.meta.json + .ndjson
+  |     +-- process-kill.ts --> cross-platform SIGTERM/SIGKILL
+  |
+  +-- registry/db.ts --> SQLite (employees, sessions, quota)
+  |
+  +-- observe/
+  |     +-- parser.ts --> NDJSON -> ProgressEvent (claude/codex/gemini)
+  |     +-- index.ts --> watch() polling + inspect() snapshot
+  |
+  +-- web/
+        +-- routes.ts --> REST API (8 endpoints)
+        +-- dashboard.ts --> inline HTML/JS (XSS-safe)</code></pre>
+</div>
+
+<h3>Data Storage</h3>
+<pre><code>~/.ome/
++-- ome.db              # SQLite: employees, sessions, quota
++-- jobs/               # File-based job tracking
+    +-- {id}.meta.json  # Job metadata (atomic write)
+    +-- {id}.ndjson     # Streaming event log</code></pre>
+</section>
+
+<!-- CLI Commands -->
+<section>
+<h2>CLI Commands</h2>
+<table>
+<thead><tr><th>Command</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>ome spawn</code></td><td>Spawn a single agent CLI directly</td></tr>
+<tr><td><code>ome dispatch</code></td><td>Dispatch task to a registered employee</td></tr>
+<tr><td><code>ome registry</code></td><td>Manage employee registry (add/remove/list)</td></tr>
+<tr><td><code>ome queue</code></td><td>Manage message queue (list/hold/release/clear)</td></tr>
+<tr><td><code>ome jobs</code></td><td>List tracked jobs (max 30)</td></tr>
+<tr><td><code>ome kill</code></td><td>Kill a running job by stored PID</td></tr>
+<tr><td><code>ome result</code></td><td>Show full output of a completed job</td></tr>
+<tr><td><code>ome watch</code></td><td>Watch a running job's live events</td></tr>
+<tr><td><code>ome inspect</code></td><td>Inspect a job's current state</td></tr>
+<tr><td><code>ome web</code></td><td>Start the management web UI</td></tr>
+<tr><td><code>ome init</code></td><td>Seed default employees</td></tr>
+<tr><td><code>ome status</code></td><td>Show current status</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- Library API -->
+<section>
+<h2>Library API</h2>
+<pre><code>import { spawnAgent, dispatch, initDb } from 'ome';
+import { inspect, watch } from 'ome/observe';
+
+initDb('~/.ome/ome.db');
+
+// Direct spawn — jobId available immediately
+const { jobId, result } = spawnAgent('Fix the bug', {
+    cli: 'claude', model: 'sonnet',
+});
+console.log(jobId);          // available before completion
+const sr = await result;     // wait for output
+
+// Employee dispatch
+const output = await dispatch('Frontend', 'Fix CSS grid');
+console.log(output.jobId);   // tracking ID
+
+// Observe
+const state = inspect(jobId);
+for await (const ev of watch(jobId)) {
+    console.log(ev);
+}</code></pre>
+</section>
+
+<!-- Multi-CLI -->
+<section>
+<h2>Multi-CLI Parser</h2>
+<p>OME normalizes NDJSON output from different AI CLIs into a unified <code>ProgressEvent</code> format:</p>
+<table>
+<thead><tr><th>CLI</th><th>Event Source</th><th>Tool Detection</th></tr></thead>
+<tbody>
+<tr><td><strong>Claude</strong></td><td><code>type</code> field</td><td><code>obj.tool.name</code></td></tr>
+<tr><td><strong>Codex</strong></td><td><code>type</code> field</td><td><code>obj.tool</code> string</td></tr>
+<tr><td><strong>Gemini</strong></td><td><code>type</code>/<code>event</code></td><td><code>obj.functionCall.name</code></td></tr>
+<tr><td><strong>Generic</strong></td><td>Fallback</td><td>&mdash;</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- REST API -->
+<section>
+<h2>REST API</h2>
+<p>The web dashboard exposes a full REST API at <code>http://127.0.0.1:7700</code>:</p>
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/status</code></td><td>System status</td></tr>
+<tr><td>GET</td><td><code>/api/employees</code></td><td>List employees</td></tr>
+<tr><td>POST</td><td><code>/api/employees</code></td><td>Add employee</td></tr>
+<tr><td>DELETE</td><td><code>/api/employees/:name</code></td><td>Remove employee</td></tr>
+<tr><td>GET</td><td><code>/api/jobs</code></td><td>List jobs</td></tr>
+<tr><td>GET</td><td><code>/api/jobs/:id</code></td><td>Inspect job</td></tr>
+<tr><td>GET</td><td><code>/api/quota</code></td><td>Get quota config</td></tr>
+<tr><td>PUT</td><td><code>/api/quota</code></td><td>Update quota</td></tr>
+</tbody>
+</table>
+</section>
+
+</div>
+
+<footer>
+<div class="container">
+<p>OME &mdash; Orchestrated Multi-agent Engine &bull; MIT License &bull; <a href="https://github.com/lidge-jun/ome">GitHub</a></p>
+</div>
+</footer>
+
+</body>
+</html>
