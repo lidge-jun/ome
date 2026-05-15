@@ -5,11 +5,21 @@ import { isAgentBusy, getActiveJobs } from '../spawn/index.js';
 import { inspect } from '../observe/index.js';
 import { messageQueue } from '../queue/index.js';
 
-const MAX_BODY = 1024 * 1024; // 1MB
+const MAX_BODY = 1024 * 1024;
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
 
 export function handleApiRequest(req: IncomingMessage, res: ServerResponse, url: URL): void {
     const method = req.method ?? 'GET';
     const path = url.pathname;
+
+    if (MUTATION_METHODS.has(method)) {
+        const origin = req.headers['origin'];
+        const host = req.headers['host'];
+        if (origin && host && !origin.includes(host)) {
+            error(res, 403, 'origin mismatch');
+            return;
+        }
+    }
 
     try {
         // Employees
@@ -87,7 +97,13 @@ export function handleApiRequest(req: IncomingMessage, res: ServerResponse, url:
 
         error(res, 404, 'not found');
     } catch (err) {
-        error(res, 500, err instanceof Error ? err.message : 'internal error');
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.includes('UNIQUE constraint')) {
+            error(res, 409, 'already exists');
+        } else {
+            console.error('[ome-web]', err);
+            error(res, 500, 'internal error');
+        }
     }
 }
 

@@ -39,6 +39,8 @@ export interface SpawnResult {
     code: number;
     jobId?: string;
     sessionId?: string;
+    stderr?: string;
+    durationMs?: number;
 }
 
 export interface DispatchOptions {
@@ -49,7 +51,7 @@ export interface DispatchOptions {
 
 // --- Job tracking types ---
 
-export type JobStatus = 'running' | 'completed' | 'failed' | 'cancelled';
+export type JobStatus = 'running' | 'completed' | 'failed' | 'cancelled' | 'cancelling';
 
 export interface Job {
     id: string;

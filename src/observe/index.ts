@@ -1,4 +1,4 @@
-import { readJobMeta, readJobLog } from '../spawn/jobs.js';
+import { readJobMeta, readJobLog, readJobLogFrom } from '../spawn/jobs.js';
 import { parseLine } from './parser.js';
 import type { LiveRunState, ParsedToolCall } from './types.js';
 import type { ProgressEvent } from '../registry/types.js';
@@ -43,12 +43,11 @@ export async function* watch(jobId: string, pollMs = 500): AsyncGenerator<Progre
     const meta = readJobMeta(jobId);
     if (!meta) return;
 
-    let offset = 0;
+    let byteOffset = 0;
 
     while (true) {
-        const lines = readJobLog(jobId);
-        const newLines = lines.slice(offset);
-        offset = lines.length;
+        const { lines: newLines, nextOffset } = readJobLogFrom(jobId, byteOffset);
+        byteOffset = nextOffset;
 
         for (const line of newLines) {
             const ev = parseLine(meta.cli, line);
@@ -56,14 +55,13 @@ export async function* watch(jobId: string, pollMs = 500): AsyncGenerator<Progre
         }
 
         const current = readJobMeta(jobId);
-        if (!current || current.status !== 'running') break;
+        if (!current || (current.status !== 'running' && current.status !== 'cancelling')) break;
 
         await new Promise(r => setTimeout(r, pollMs));
     }
 
-    // Final drain — catch lines written between last poll and status change
-    const finalLines = readJobLog(jobId);
-    for (const line of finalLines.slice(offset)) {
+    const { lines: finalLines } = readJobLogFrom(jobId, byteOffset);
+    for (const line of finalLines) {
         const ev = parseLine(meta.cli, line);
         if (ev) yield ev;
     }

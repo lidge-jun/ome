@@ -8,6 +8,7 @@ export function initDb(dbPath: string): Database.Database {
     if (db) return db;
     db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
+    db.pragma('busy_timeout = 5000');
     db.exec(`
         CREATE TABLE IF NOT EXISTS employees (
             id TEXT PRIMARY KEY,

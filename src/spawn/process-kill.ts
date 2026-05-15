@@ -54,6 +54,7 @@ export function terminateProcessTree(pid: number | undefined | null): KillResult
 export function scheduleForceKill(pid: number | undefined | null, delayMs = 2000): void {
     if (!pid) return;
     setTimeout(() => {
-        try { process.kill(pid, 'SIGKILL'); } catch { /* already dead */ }
+        try { process.kill(-pid, 'SIGKILL'); } catch { /* ignore */ }
+        try { process.kill(pid, 'SIGKILL'); } catch { /* ignore */ }
     }, delayMs).unref();
 }

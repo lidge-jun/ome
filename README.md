@@ -498,6 +498,24 @@ OME adopted several patterns from [openai/codex-plugin-cc](https://github.com/op
 
 ---
 
+## Known Issues (v0.1.0)
+
+Code review (ChatGPT thinking model, 2026-05-15) identified these areas for v0.1.1:
+
+| Area | Rating | Issue | Patch |
+|------|--------|-------|-------|
+| Process supervision | **FAIL** | `spawn()` missing `detached: true` on Unix; `killJob()` marks done before process exits; `killAgent()` unsafe in multi-job | `01_process_supervision` |
+| Web API auth | **FAIL** | No auth on `/api/*` routes; `0.0.0.0` bind exposes everything; raw `err.message` in 500 responses | `02_web_auth` |
+| Output bounding | WARN | Unbounded stdout/stderr accumulation; `watch()` re-reads entire log every poll; `SpawnResult` omits stderr | `03_output_bounding` |
+| Type safety | WARN | `AgentCli` union collapses to `string`; DB rows cast without validation | Backlog |
+| Architecture | WARN | Mutable globals exported; queue persistence without restore; incomplete features exposed | Backlog |
+
+Patch plans: `devlog/_plan/260515_patch_v0.1.1/`
+
+> **Cross-project**: These findings are mirrored to cli-jaw at `devlog/_plan/_OME_mirror/260515_ome_review_crosscheck.md` for shared vulnerability tracking.
+
+---
+
 ## Future Work
 
 | Feature | Status |

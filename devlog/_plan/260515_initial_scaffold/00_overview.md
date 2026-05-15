@@ -1,6 +1,6 @@
 # OME — Orchestrated Multi-agent Engine
 
-- status: building (P1 done, P2+ planned)
+- status: v0.1.0 shipped (P1-P7 complete, review done)
 - created: 2026-05-15
 
 ## What Is OME
@@ -124,12 +124,12 @@ for await (const ev of watch(jobId)) { console.log(ev); }
 | Phase | Scope | Status | Deps |
 |-------|-------|--------|------|
 | P1 | Scaffold + types + SQLite + registry + basic spawn + dispatch + queue + CLI | ✅ done | — |
-| P2 | Enhanced spawn: job tracking, NDJSON callbacks, sessionId, cross-platform kill | planned | P1 |
-| P3 | Observe: NDJSON parser (claude/codex/gemini) + LiveRunState + watch/inspect API | planned | P2 |
-| P4 | Web UI: employee dashboard + quota + live process monitor | planned | P1, P3 |
-| P5 | Seed: `ome init` default employees (claude/codex/gemini presets) | planned | P1 |
-| P6 | CLI updates: watch, inspect, web, init, queue subcommands | planned | P2-P5 |
-| P7 | Tests: unit + integration + CLI smoke tests | planned | all |
+| P2 | Enhanced spawn: job tracking, NDJSON callbacks, sessionId, cross-platform kill | ✅ done | P1 |
+| P3 | Observe: NDJSON parser (claude/codex/gemini) + LiveRunState + watch/inspect API | ✅ done | P2 |
+| P4 | Web UI: employee dashboard + quota + live process monitor | ✅ done | P1, P3 |
+| P5 | Seed: `ome init` default employees (claude/codex/gemini presets) | ✅ done | P1 |
+| P6 | CLI updates: watch, inspect, web, init, queue subcommands | ✅ done | P2-P5 |
+| P7 | Tests: unit + integration + CLI smoke tests | ✅ done | all |
 
 ## cli-jaw Source References
 

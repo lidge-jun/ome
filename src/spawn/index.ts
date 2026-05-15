@@ -7,7 +7,8 @@ import { terminateProcessTree, scheduleForceKill } from './process-kill.js';
 
 export const bus = new EventEmitter();
 
-let activeProcess: ChildProcess | null = null;
+const MAX_STDOUT_BYTES = 10 * 1024 * 1024;
+const MAX_STDERR_BYTES = 1 * 1024 * 1024;
 
 const activeJobs = new Map<string, ChildProcess>();
 const lineBuffers = new Map<string, string>();
@@ -17,7 +18,7 @@ export function isAgentBusy(): boolean {
     return activeJobs.size > 0;
 }
 
-export function getActiveJobs(): Map<string, ChildProcess> {
+export function getActiveJobs(): ReadonlyMap<string, ChildProcess> {
     return activeJobs;
 }
 
@@ -36,20 +37,28 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                 cwd: opts.cwd ?? process.cwd(),
                 env,
                 stdio: ['pipe', 'pipe', 'pipe'],
+                detached: process.platform !== 'win32',
             });
 
-            activeProcess = child;
             activeJobs.set(job.id, child);
             updateJob(job.id, { pid: child.pid ?? null });
             bus.emit('agent_start', { cli, pid: child.pid, jobId: job.id });
 
             let stdout = '';
             let stderr = '';
+            let stdoutBytes = 0;
+            let stderrBytes = 0;
             let settled = false;
+            const startTime = Date.now();
 
             child.stdout?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
-                stdout += text;
+                stdoutBytes += chunk.length;
+                if (stdoutBytes <= MAX_STDOUT_BYTES) {
+                    stdout += text;
+                } else if (stdoutBytes - chunk.length <= MAX_STDOUT_BYTES) {
+                    stdout += '\n[ome] output truncated at 10MB — full log in job NDJSON';
+                }
 
                 let buf = (lineBuffers.get(job.id) ?? '') + text;
                 let nlIdx = buf.indexOf('\n');
@@ -69,7 +78,10 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
 
             child.stderr?.on('data', (chunk: Buffer) => {
                 const text = chunk.toString();
-                stderr += text;
+                stderrBytes += chunk.length;
+                if (stderrBytes <= MAX_STDERR_BYTES) {
+                    stderr += text;
+                }
                 opts.onStderr?.(text);
             });
 
@@ -90,9 +102,9 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
                 }
                 lineBuffers.delete(job.id);
                 activeJobs.delete(job.id);
-                if (activeProcess === child) activeProcess = null;
                 if (cancelledJobs.has(job.id)) {
                     cancelledJobs.delete(job.id);
+                    cancelJob(job.id);
                 } else {
                     completeJob(job.id, code);
                 }
@@ -101,7 +113,13 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
             child.on('close', (code) => {
                 settle(code ?? 1);
                 bus.emit('agent_done', { cli, code, pid: child.pid, jobId: job.id });
-                resolve({ text: stdout, code: code ?? 1, jobId: job.id });
+                resolve({
+                    text: stdout,
+                    code: code ?? 1,
+                    jobId: job.id,
+                    stderr: stderr || undefined,
+                    durationMs: Date.now() - startTime,
+                });
             });
 
             child.on('error', (err) => {
@@ -122,14 +140,12 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
     return { jobId: job.id, result };
 }
 
-export function killAgent(reason = 'user'): boolean {
-    if (!activeProcess) return false;
-    bus.emit('agent_kill', { reason, pid: activeProcess.pid });
-    const pid = activeProcess.pid;
-    terminateProcessTree(pid);
-    scheduleForceKill(pid);
-    activeProcess = null;
-    return true;
+export function killAllJobs(reason = 'user'): number {
+    let killed = 0;
+    for (const jobId of [...activeJobs.keys()]) {
+        if (killJob(jobId, reason)) killed++;
+    }
+    return killed;
 }
 
 export function killJob(jobId: string, reason = 'user'): boolean {
@@ -137,27 +153,21 @@ export function killJob(jobId: string, reason = 'user'): boolean {
     if (!proc) return false;
     bus.emit('agent_kill', { reason, pid: proc.pid, jobId });
     cancelledJobs.add(jobId);
-    if (reason === 'user') {
-        cancelJob(jobId);
-    } else {
-        completeJob(jobId, 1);
-    }
+    updateJob(jobId, { status: 'cancelling', phase: 'cancelling' });
     terminateProcessTree(proc.pid);
     scheduleForceKill(proc.pid);
-    activeJobs.delete(jobId);
-    lineBuffers.delete(jobId);
     return true;
 }
 
 export function killJobByPid(jobId: string, reason = 'user'): boolean {
     const meta = readJobMeta(jobId);
     if (!meta || !meta.pid) return false;
-    if (meta.status !== 'running') return false;
+    if (meta.status !== 'running' && meta.status !== 'cancelling') return false;
 
     const kill = terminateProcessTree(meta.pid);
     if (!kill.delivered) {
         const fresh = readJobMeta(jobId);
-        if (!fresh || fresh.status !== 'running') return false;
+        if (!fresh || (fresh.status !== 'running' && fresh.status !== 'cancelling')) return false;
         completeJob(jobId, 1);
         return true;
     }
@@ -172,10 +182,10 @@ export function killJobByPid(jobId: string, reason = 'user'): boolean {
 }
 
 export function waitForProcessEnd(timeoutMs = 3000): Promise<void> {
-    if (!activeProcess) return Promise.resolve();
+    if (activeJobs.size === 0) return Promise.resolve();
     return new Promise((resolve) => {
         const check = setInterval(() => {
-            if (!activeProcess) { clearInterval(check); resolve(); }
+            if (activeJobs.size === 0) { clearInterval(check); resolve(); }
         }, 50);
         setTimeout(() => { clearInterval(check); resolve(); }, timeoutMs);
     });

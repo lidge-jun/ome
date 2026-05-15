@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, readFileSync, appendFileSync, existsSync, readdirSync, unlinkSync, renameSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, appendFileSync, existsSync, readdirSync, unlinkSync, renameSync, openSync, readSync, fstatSync, closeSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -87,6 +87,26 @@ export function readJobLog(id: string): string[] {
     const logFile = safeJobPath(id, '.ndjson');
     if (!existsSync(logFile)) return [];
     return readFileSync(logFile, 'utf8').split('\n').filter(Boolean);
+}
+
+export function readJobLogFrom(id: string, byteOffset: number): { lines: string[]; nextOffset: number } {
+    if (!isValidJobId(id)) return { lines: [], nextOffset: byteOffset };
+    const logFile = safeJobPath(id, '.ndjson');
+    if (!existsSync(logFile)) return { lines: [], nextOffset: byteOffset };
+
+    const fd = openSync(logFile, 'r');
+    try {
+        const stat = fstatSync(fd);
+        if (stat.size <= byteOffset) return { lines: [], nextOffset: byteOffset };
+
+        const buf = Buffer.alloc(stat.size - byteOffset);
+        readSync(fd, buf, 0, buf.length, byteOffset);
+        const text = buf.toString('utf8');
+        const lines = text.split('\n').filter(Boolean);
+        return { lines, nextOffset: stat.size };
+    } finally {
+        closeSync(fd);
+    }
 }
 
 export function listJobs(): Job[] {

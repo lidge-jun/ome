@@ -65,20 +65,23 @@ async function loadAll(){
     fetch('/api/quota').then(r=>r.json()).catch(()=>({})),
   ]);
   const sd=document.getElementById('stats');
-  sd.innerHTML='';
+  sd.replaceChildren();
   [{v:status.employees,l:'Employees'},{v:status.activeJobs,l:'Active Jobs'},{v:status.queueDepth,l:'Queue'}].forEach(s=>{
     const sp=document.createElement('span');sp.className='stat';
-    sp.innerHTML='<span class="stat-val">'+esc(String(s.v))+'</span><br><span class="stat-label">'+esc(s.l)+'</span>';
+    const val=document.createElement('span');val.className='stat-val';val.textContent=String(s.v);
+    const br=document.createElement('br');
+    const lbl=document.createElement('span');lbl.className='stat-label';lbl.textContent=s.l;
+    sp.appendChild(val);sp.appendChild(br);sp.appendChild(lbl);
     sd.appendChild(sp);
   });
-  const el=document.getElementById('emp-list');el.innerHTML='';
+  const el=document.getElementById('emp-list');el.replaceChildren();
   emps.forEach(e=>{
     const tr=document.createElement('tr');
     [e.name,e.cli,e.model||'-',e.role||'-'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
     const td=document.createElement('td');const btn=document.createElement('button');btn.className='danger';btn.textContent='Del';
     btn.onclick=()=>delEmp(e.name);td.appendChild(btn);tr.appendChild(td);el.appendChild(tr);
   });
-  const jl=document.getElementById('job-list');jl.innerHTML='';
+  const jl=document.getElementById('job-list');jl.replaceChildren();
   jobs.slice(0,20).forEach(j=>{
     const tr=document.createElement('tr');
     const idTd=document.createElement('td');idTd.style.fontFamily='monospace';idTd.style.fontSize='.8rem';idTd.textContent=j.id.slice(0,16);tr.appendChild(idTd);

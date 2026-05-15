@@ -251,10 +251,15 @@ function handleWeb(args: string[]): void {
         options: {
             port: { type: 'string', default: '7700' },
             host: { type: 'string', default: '127.0.0.1' },
+            'auth-token': { type: 'string' },
         },
     });
     const port = parseInt(values.port!, 10);
-    const server = createServer(port, values.host!);
+    const server = createServer({
+        port,
+        host: values.host!,
+        authToken: values['auth-token'],
+    });
 
     server.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
@@ -326,7 +331,7 @@ Examples:
   ome watch job-abc123
   ome kill job-abc123
   ome result job-abc123
-  ome web --port 3500 --host 0.0.0.0
+  ome web --port 3500 --host 0.0.0.0 --auth-token mytoken
   ome init`);
 }
 
