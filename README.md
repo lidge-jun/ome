@@ -52,7 +52,10 @@ ome init
 ome spawn --cli claude --model opus "Fix the login bug in auth.ts"
 
 # Dispatch to a registered employee
-ome dispatch --agent "Claude" --task "Review the PR and suggest improvements"
+ome dispatch --agent "Backend" --task "Review the PR and suggest improvements"
+
+# Inspect the provider-specific spawn contract without running it
+ome spawn --dry-run --cli codex "Review args only"
 
 # Start the web dashboard
 ome web    # → http://127.0.0.1:7700
@@ -74,6 +77,7 @@ ome spawn / ome dispatch
   ├── spawn/
   │   ├── index.ts ──→ spawn CLI process, session ID capture
   │   ├── args.ts ──→ per-CLI arg builders (new + resume)
+  │   ├── preflight.ts ──→ CLI binary checks and path resolution
   │   ├── jobs.ts ──→ ~/.ome/jobs/{id}.meta.json + .ndjson
   │   └── process-kill.ts ──→ cross-platform SIGTERM / SIGKILL
   │
@@ -101,18 +105,20 @@ ome spawn / ome dispatch
 ### `ome spawn` — Direct Agent Invocation
 
 ```bash
-ome spawn --cli <name> [--model <model>] "<prompt>"
+ome spawn [--dry-run] --cli <name> [--model <model>] "<prompt>"
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--cli` | `claude` | CLI binary (`claude`, `codex`, `gemini`, `copilot`, or any executable) |
 | `--model` | *(CLI default)* | Model override |
+| `--dry-run` | `false` | Print the provider-specific args and prompt transport without spawning |
 
 ```bash
 ome spawn --cli claude --model opus "Refactor the database module"
 ome spawn --cli codex --model o3-pro "Add unit tests for auth"
 ome spawn --cli gemini "Analyze quarterly sales data"
+ome spawn --dry-run --cli codex "Inspect spawn contract"
 ome spawn --cli python3 "print('hello')"   # any CLI works
 ```
 
@@ -126,10 +132,20 @@ Finds the named employee, uses their configured CLI/model/prompt, and spawns the
 
 ```bash
 ome dispatch --agent "Frontend" --task "Fix CSS grid on mobile"
-ome dispatch --agent "Codex" --task "Generate OpenAPI spec"
+ome dispatch --agent "Backend" --task "Generate OpenAPI spec"
 ```
 
 **Session resume** is automatic. If the resumed session is stale (conversation not found, expired, etc.), OME clears the session and retries with a fresh spawn.
+
+Employee prompts are only passed to CLIs with a verified system-prompt contract. Unsupported providers fail clearly instead of silently dropping role instructions.
+
+### `ome doctor` — CLI Preflight
+
+```bash
+ome doctor
+```
+
+Checks known agent CLI binaries (`claude`, `codex`, `gemini`, `copilot`, `opencode`) with a safe version probe and reports whether each executable is available.
 
 ### `ome registry` — Employee Management
 
@@ -230,7 +246,7 @@ When cli-jaw is not running, quota shows as "unavailable."
 
 ### Employee Prompt Editor
 
-Click any employee name to open a slide-in side panel. Edit the system prompt and save — the prompt is passed to the CLI via `--system-prompt` on the next dispatch.
+Click any employee name to open a slide-in side panel. Edit the system prompt and save. OME passes prompts only to CLIs with a verified system-prompt contract; unsupported providers fail clearly instead of silently dropping employee instructions.
 
 ### Session Resume
 
@@ -321,7 +337,7 @@ interface SpawnResult {
 interface SpawnOptions {
     cli?: AgentCli;
     model?: string;
-    systemPrompt?: string;  // passed via --system-prompt
+    systemPrompt?: string;  // provider-specific; unsupported CLIs fail clearly
     sessionId?: string;     // resume a previous session
     cwd?: string;
     timeout?: number;
