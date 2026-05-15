@@ -11,7 +11,8 @@
 </p>
 
 <p align="center">
-  Spawn, dispatch, and orchestrate AI agent CLIs — Claude Code, Codex, Codex App, Gemini CLI, Copilot, Grok, OpenCode — as <strong>employees</strong> from a single unified interface.
+  One command to spawn any AI coding agent.<br>
+  Claude Code, Codex, Codex App, Gemini CLI, Copilot, Grok, OpenCode — all through a single interface.
 </p>
 
 <p align="center">
@@ -20,406 +21,215 @@
 
 ---
 
-## Features
+## Why OME?
 
-| Feature | Description |
-|---------|-------------|
-| **Multi-CLI spawn** | Run any AI CLI (`claude`, `codex`, `codex-app`, `gemini`, `copilot`, `grok`, `opencode`, or any executable) with a single command |
-| **Employee registry** | Register named employees with preset CLI, model, role, and system prompt |
-| **Session resume** | Automatically resumes previous sessions per employee — stale sessions detected and retried |
-| **Per-CLI quota** | Live quota display proxied from cli-jaw — per-window bars with account info and reset times |
-| **Job tracking** | Every spawn creates a persistent job with ID, metadata, PID, and NDJSON event log |
-| **Live observation** | Watch running jobs in real-time or inspect state snapshots cross-process |
-| **Web dashboard** | Management UI with employee CRUD, prompt editor side panel, per-CLI quota cards, and job status |
-| **Cross-platform kill** | Process tree termination via Unix process groups + Windows taskkill fallback |
+Every AI coding CLI has its own flags, output format, and session model.
+OME normalizes all of that into one spawn contract — so your harness doesn't have to.
+
+```bash
+# Same interface, any provider
+ome spawn --cli claude  "Fix the auth bug"
+ome spawn --cli codex   "Add unit tests"
+ome spawn --cli grok    "Analyze performance"
+ome spawn --cli gemini  "Research the API"
+```
+
+You get back a structured result with job tracking, session resume, and real-time event streaming — regardless of which CLI runs underneath.
+
+---
+
+## Supported Providers
+
+| CLI | Protocol | Resume | System Prompt | Thinking |
+|-----|----------|--------|---------------|----------|
+| Claude Code | NDJSON | `--resume` | Yes | Yes |
+| Codex CLI | NDJSON | `exec resume` | No | Yes |
+| Codex App | JSON-RPC 2.0 | `thread/resume` | Yes | Yes |
+| Gemini CLI | NDJSON | `--resume` | No | — |
+| Copilot CLI | NDJSON | `--resume` | No | — |
+| Grok | NDJSON | `--resume` | No | Yes |
+| OpenCode | NDJSON | `-s` | No | Yes |
+| *(any executable)* | stdin/stdout | No | — | — |
+
+`ome doctor` shows which CLIs are installed and ready.
+
+---
+
+## Install
+
+```bash
+# npm (recommended)
+npm install -g ome
+
+# from source
+git clone https://github.com/lidge-jun/ome.git
+cd ome && npm install && npm run build && npm link
+```
+
+**Requirements:** Node.js >= 20 and at least one AI CLI installed.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install from npm
-npm install -g ome
-
-# — OR — install from source
-git clone https://github.com/lidge-jun/ome.git
-cd ome && npm install && npm run build && npm link
-
-# Seed default employees (Frontend, Backend, Data, Docs)
+# 1. Set up default employees
 ome init
 
-# Check which CLIs are installed
+# 2. Check available CLIs
 ome doctor
+#   claude    ok — 2.1.141
+#   codex     ok — 0.130.0
+#   grok      ok — 0.1.210
+#   ...
 
-# Spawn a one-off agent
+# 3. Spawn an agent directly
 ome spawn --cli claude --model opus "Fix the login bug in auth.ts"
 
-# Dispatch to a registered employee
-ome dispatch --agent "Backend" --task "Review the PR and suggest improvements"
+# 4. Or dispatch to a named employee
+ome dispatch --agent "Backend" --task "Generate OpenAPI spec"
 
-# Inspect the provider-specific spawn contract without running it
-ome spawn --dry-run --cli codex "Review args only"
+# 5. Monitor running jobs
+ome watch <job-id>
 
-# Start the web dashboard
+# 6. Start the web dashboard
 ome web    # → http://127.0.0.1:7700
 ```
 
-### Requirements
+---
 
-- **Node.js >= 20**
-- At least one AI CLI installed: `claude`, `codex`, or `gemini`
-- SQLite via `better-sqlite3` (auto-compiled on install)
+## CLI Commands
+
+| Command | What it does |
+|---------|-------------|
+| `ome spawn --cli <name> "<prompt>"` | Spawn any CLI agent directly |
+| `ome spawn --dry-run --cli <name> "<prompt>"` | Preview spawn args without running |
+| `ome dispatch --agent "<name>" --task "<task>"` | Dispatch to a registered employee (auto-resume) |
+| `ome doctor` | Check which CLIs are installed |
+| `ome init` | Seed default employees (Frontend, Backend, Data, Docs) |
+| `ome registry list` | List registered employees |
+| `ome registry add --name "<name>" --cli <cli>` | Register a new employee |
+| `ome registry remove "<name>"` | Remove an employee |
+| `ome jobs` | List recent jobs |
+| `ome inspect <job-id>` | Snapshot of a job's current state |
+| `ome watch <job-id>` | Live event stream from a running job |
+| `ome result <job-id>` | Full output of a completed job |
+| `ome kill <job-id>` | Kill a running job |
+| `ome web` | Start the web dashboard (default: `http://127.0.0.1:7700`) |
+| `ome status` | Agent busy state, job count, queue depth |
 
 ---
 
-## Architecture
+## Library Usage
 
-```
-ome spawn / ome dispatch
-  │
-  ├── spawn/
-  │   ├── index.ts ──→ spawn CLI process, session ID capture
-  │   ├── args.ts ──→ per-CLI arg builders (new + resume)
-  │   ├── preflight.ts ──→ CLI binary checks and path resolution
-  │   ├── jobs.ts ──→ ~/.ome/jobs/{id}.meta.json + .ndjson
-  │   └── process-kill.ts ──→ cross-platform SIGTERM / SIGKILL
-  │
-  ├── dispatch/
-  │   └── index.ts ──→ employee lookup → session resume → stale retry
-  │
-  ├── registry/
-  │   └── db.ts ──→ SQLite (employees, sessions, quota)
-  │
-  ├── observe/
-  │   ├── parser.ts ──→ NDJSON → ProgressEvent (claude/codex/codex-app/gemini/grok/opencode)
-  │   ├── progress.ts ──→ progress() structured job progress
-  │   ├── watch-all.ts ──→ watchAll() multiplexed multi-job stream
-  │   ├── stall.ts ──→ checkStall() silence detection
-  │   ├── summary.ts ──→ summarize() post-completion summary
-  │   └── index.ts ──→ watch/inspect/progress/watchAll/stall/summary
-  │
-  └── web/
-      ├── routes.ts ──→ REST API
-      ├── dashboard.ts ──→ inline HTML/JS dashboard (XSS-safe)
-      ├── dashboard-styles.ts ──→ CSS
-      └── quota-proxy.ts ──→ per-CLI quota via cli-jaw proxy
-```
-
----
-
-## CLI Reference
-
-### `ome spawn` — Direct Agent Invocation
-
-```bash
-ome spawn [--dry-run] --cli <name> [--model <model>] "<prompt>"
-```
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--cli` | `claude` | CLI binary (`claude`, `codex`, `codex-app`, `gemini`, `copilot`, `grok`, `opencode`, or any executable) |
-| `--model` | *(CLI default)* | Model override |
-| `--dry-run` | `false` | Print the provider-specific args and prompt transport without spawning |
-
-```bash
-ome spawn --cli claude --model opus "Refactor the database module"
-ome spawn --cli codex --model o3-pro "Add unit tests for auth"
-ome spawn --cli gemini "Analyze quarterly sales data"
-ome spawn --cli grok "Analyze the performance bottleneck"
-ome spawn --cli codex-app "Implement the auth middleware"
-ome spawn --dry-run --cli codex "Inspect spawn contract"
-ome spawn --cli python3 "print('hello')"   # any CLI works
-```
-
-### `ome dispatch` — Employee-Based Invocation
-
-```bash
-ome dispatch --agent "<name>" --task "<task>"
-```
-
-Finds the named employee, uses their configured CLI/model/prompt, and spawns the task. If a previous session exists for that employee (same CLI + model), it automatically resumes via `--resume`.
-
-```bash
-ome dispatch --agent "Frontend" --task "Fix CSS grid on mobile"
-ome dispatch --agent "Backend" --task "Generate OpenAPI spec"
-```
-
-**Session resume** is automatic. If the resumed session is stale (conversation not found, expired, etc.), OME clears the session and retries with a fresh spawn.
-
-Employee prompts are only passed to CLIs with a verified system-prompt contract. Unsupported providers fail clearly instead of silently dropping role instructions.
-
-### `ome doctor` — CLI Preflight
-
-```bash
-ome doctor
-```
-
-Checks known agent CLI binaries (`claude`, `codex`, `codex-app`, `gemini`, `copilot`, `grok`, `opencode`) with a safe version probe and reports whether each executable is available.
-
-### `ome registry` — Employee Management
-
-```bash
-ome registry add --name "<name>" --cli <cli> [--model <model>] [--role "<role>"]
-ome registry remove "<name>"
-ome registry list
-```
-
-```bash
-ome registry add --name "Backend" --cli codex --model o3-pro --role "API and database"
-ome registry add --name "Researcher" --cli gemini --role "Deep research"
-ome registry list
-ome registry remove "Backend"
-```
-
-Employee prompts can be edited from the web dashboard's side panel — click any employee name to open the prompt editor.
-
-### `ome jobs` — Job Tracking
-
-```bash
-ome jobs                 # List recent jobs (max 30)
-ome result <job-id>      # Full output of a completed job
-ome kill <job-id>        # Kill a running job (cross-process, via PID)
-```
-
-Jobs are persisted under `~/.ome/jobs/`:
-- `{id}.meta.json` — status, CLI, prompt, PID, timestamps
-- `{id}.ndjson` — streaming event log
-
-Old jobs are automatically pruned (max 50 non-running, LRU).
-
-### `ome watch` / `ome inspect` — Live Monitoring
-
-```bash
-ome watch <job-id>       # Live event stream (file-tailing)
-ome inspect <job-id>     # Current state snapshot
-```
-
-Cross-process safe — reads job files, not in-memory state. Watch from a separate terminal.
-
-```
-$ ome watch job-m1abc-x9f3
-10:23:45 [assistant] Analyzing the codebase...
-10:23:47 [tool_use:Read] Reading src/auth.ts
-10:23:50 [assistant] Found the issue in line 42...
-```
-
-### `ome web` — Web Dashboard
-
-```bash
-ome web                          # http://127.0.0.1:7700
-ome web --port 3500              # custom port
-ome web --host 0.0.0.0           # bind all interfaces
-```
-
-Dashboard features:
-- **Stats bar** — employee count, active jobs, queue depth
-- **Per-CLI quota cards** — live bars with account info, reset times (proxied from cli-jaw)
-- **Employee table** — add, remove, inline SVG provider icons per CLI
-- **Prompt editor** — click any employee name to open a side panel for editing system prompts
-- **Jobs table** — status badges, inspect button
-- **Auto-refresh** — polls every 5 seconds
-
-### `ome init` — Seed Defaults
-
-```bash
-ome init
-```
-
-Registers 4 default employees (idempotent):
-
-| Name | CLI | Model | Role |
-|------|-----|-------|------|
-| Frontend | claude | opus | UI/UX, CSS, components |
-| Backend | codex | gpt-5.5 | API, DB, server logic |
-| Data | gemini | gemini-3.1-pro | Data pipeline, analysis, ML |
-| Docs | codex | *(default)* | Documentation, README, API docs |
-
-### `ome status`
-
-Shows: agent busy state, active/total jobs, queue depth, employee list.
-
----
-
-## Web Dashboard Details
-
-### Per-CLI Quota
-
-The dashboard proxies quota data from cli-jaw (`GET http://127.0.0.1:3457/api/quota`) with a 30-second cache. Each CLI gets its own card showing:
-
-- Account info (email, plan/tier)
-- Per-window quota bars (5h, 7d, monthly, etc.)
-- Color-coded fill: green (< 80%), yellow (80–99%), red (100%)
-- Reset time in compact format (HH:MM for today, M/D for future dates)
-
-When cli-jaw is not running, quota shows as "unavailable."
-
-### Employee Prompt Editor
-
-Click any employee name to open a slide-in side panel. Edit the system prompt and save. OME passes prompts only to CLIs with a verified system-prompt contract; unsupported providers fail clearly instead of silently dropping employee instructions.
-
-### Session Resume
-
-OME tracks CLI sessions per employee in SQLite (`employee_sessions` table). On dispatch:
-
-1. Check if a previous session exists for the employee (matching CLI + model)
-2. If yes, spawn with resume args (e.g., `--resume <sessionId>` for Claude)
-3. If the resume fails with a stale session error, clear and retry fresh
-4. On success, persist the new session ID for future resumes
-
-Supported CLIs for resume:
-
-| CLI | Resume method |
-|-----|--------------|
-| Claude | `--resume <sessionId>` |
-| Codex | `exec resume <sessionId> <prompt>` |
-| Gemini | `--resume <sessionId>` |
-| OpenCode | `-s <sessionId>` |
-| Copilot | `--resume <sessionId>` |
-| Grok | `--resume <sessionId>` |
-| Codex App | `thread/resume` (JSON-RPC) |
-
-### Security
-
-| Threat | Mitigation |
-|--------|-----------|
-| XSS | `textContent` only — never `innerHTML` for dynamic values |
-| Path traversal | `isValidJobId()` regex guard on all job endpoints |
-| Request smuggling | `Content-Type: application/json` required for POST/PUT |
-| Body bombs | 1MB cap with `req.destroy()` on exceed |
-| Slow-loris | `requestTimeout=30s`, `headersTimeout=10s` |
-| Default bind | `127.0.0.1` only — `0.0.0.0` is opt-in via `--host` |
-
----
-
-## Library API
-
-OME can be used as a library in Node.js projects:
+Use OME as a Node.js library to build your own harness:
 
 ```typescript
 import { spawnAgent, dispatch, initDb, seedDefaults } from 'ome';
-import { inspect, watch, progress, watchAll, checkStall, summarize } from 'ome/observe';
+import { progress, watchAll, checkStall, summarize } from 'ome';
 
 // Initialize
-initDb('~/.ome/ome.db');
+initDb();
 seedDefaults();
 
-// Direct spawn
+// Spawn — same API for any provider
 const { jobId, result } = spawnAgent('Fix the bug', {
     cli: 'claude',
     model: 'sonnet',
-    systemPrompt: 'You are a senior engineer.',
     cwd: '/path/to/project',
 });
-console.log(`Job started: ${jobId}`);
-const output = await result;
-console.log(`Exit ${output.code}, session: ${output.sessionId}`);
+const output = await result;  // { text, code, sessionId, durationMs }
 
-// Employee dispatch (auto-resume)
-const dr = await dispatch('Frontend', 'Fix CSS grid', {
-    cwd: '/path/to/project',
-});
-console.log(`Job: ${dr.jobId}, session: ${dr.sessionId}`);
+// Track progress while running
+const p = progress(jobId);
+// → { tools: { total: 3, completed: 2, running: 1 }, elapsedMs: 4200, ... }
 
-// Observe — live progress
-const p = progress(jobId);          // { tools: { total, completed, running }, elapsedMs, ... }
-
-// Observe — multiplexed watch across multiple jobs
+// Watch multiple jobs at once
 for await (const { jobId: jid, event } of watchAll([job1, job2, job3])) {
-    console.log(`[${jid}] [${event.type}] ${event.message}`);
+    console.log(`[${jid}] ${event.type}: ${event.message}`);
 }
 
-// Observe — stall detection
+// Detect stalled agents
 const stall = checkStall(jobId, { warningMs: 30_000, timeoutMs: 120_000 });
 if (stall?.state === 'stalled') killJob(jobId);
 
-// Observe — post-completion summary
-const summary = summarize(jobId);   // { toolsUsed, thinkingBlocks, outputLength, exitCode, ... }
+// Get a structured summary after completion
+const s = summarize(jobId);
+// → { toolsUsed: ['Read', 'Edit'], thinkingBlocks: 2, outputLength: 1847, exitCode: 0 }
 ```
-
-### Package Exports
-
-| Path | Description |
-|------|-------------|
-| `ome` | Main entry — spawn, dispatch, registry, observe, types |
-| `ome/observe` | Observation — inspect, watch, progress, watchAll, checkStall, summarize |
 
 ### Key Types
 
 ```typescript
+type AgentCli = 'claude' | 'codex' | 'codex-app' | 'gemini'
+              | 'copilot' | 'grok' | 'opencode' | string;
+
 interface SpawnResult {
-    text: string;          // stdout output
-    code: number;          // exit code
-    jobId?: string;        // job tracking ID
-    sessionId?: string;    // CLI session ID (for resume)
-    stderr?: string;       // stderr output
-    durationMs?: number;   // wall-clock duration
+    text: string;         // agent output
+    code: number;         // exit code
+    jobId?: string;       // for tracking
+    sessionId?: string;   // for resume
+    durationMs?: number;
 }
-
-interface SpawnOptions {
-    cli?: AgentCli;
-    model?: string;
-    systemPrompt?: string;  // provider-specific; unsupported CLIs fail clearly
-    sessionId?: string;     // resume a previous session
-    cwd?: string;
-    timeout?: number;
-    env?: Record<string, string>;
-    onStdout?: (chunk: string) => void;
-    onStderr?: (chunk: string) => void;
-}
-
-type AgentCli = 'claude' | 'codex' | 'codex-app' | 'gemini' | 'copilot' | 'grok' | 'opencode' | string;
 ```
 
 ---
 
-## NDJSON Parser
+## Web Dashboard
 
-OME normalizes output from different AI CLIs into a unified `ProgressEvent` format:
+```bash
+ome web                    # http://127.0.0.1:7700
+ome web --port 3500        # custom port
+```
 
-| CLI | Protocol | Event Source | Tool Detection |
-|-----|----------|-------------|----------------|
-| **Claude** | NDJSON (stream-json) | `type` field | `obj.tool.name` or `obj.name` |
-| **Codex** | NDJSON (json) | `type` field | `obj.item.type` (command/web_search) |
-| **Codex App** | JSON-RPC 2.0 (stdio) | notification `method` | `item.type` (commandExecution/fileChange/webSearch) |
-| **Gemini** | NDJSON (stream-json) | `type` or `event` field | `obj.functionCall.name` |
-| **Grok** | NDJSON (streaming-json) | `type` field | `obj.name` (thought/text/tool_use/tool_result) |
-| **OpenCode** | NDJSON (json) | `type` field | `obj.part.tool` or `obj.part.name` |
-| **Copilot** | NDJSON (json) | Generic fallback | — |
-
-Session ID extraction per provider: Claude/Gemini (`sessionId`), Codex (`thread_id`), Codex App (`threadId` via JSON-RPC), Grok (`sessionId` from `end` event only), OpenCode (`sessionID`).
+- **Employee management** — add, remove, edit system prompts
+- **Per-CLI quota cards** — live usage bars with plan info (emails are masked)
+- **Job monitoring** — status badges, inspect, auto-refresh every 5s
+- **Provider icons** — inline SVGs for each CLI
 
 ---
 
-## Data Storage
+## How It Works
 
-All data lives under `~/.ome/` (override with `OME_HOME`):
+### Session Resume
+
+OME tracks sessions per employee in SQLite. On dispatch:
+
+1. Look up the employee's last session (same CLI + model)
+2. Spawn with `--resume <sessionId>` (or JSON-RPC `thread/resume` for Codex App)
+3. If stale → clear session → retry fresh
+4. Persist the new session ID for next time
+
+### Event Parsing
+
+Every CLI outputs differently. OME normalizes all of them into `ProgressEvent`:
+
+```typescript
+{ type: 'assistant' | 'tool_use' | 'tool_result' | 'thinking' | 'error' | 'system',
+  message: string, toolName: string | null, raw: unknown, ts: string }
+```
+
+Events are streamed in real-time via `watch()` and persisted as NDJSON logs per job.
+
+### Job Persistence
 
 ```
 ~/.ome/
-├── ome.db              # SQLite: employees, employee_sessions,
-│                       #   queued_messages, quota_config
+├── ome.db              # SQLite: employees, sessions, quota
 └── jobs/
-    ├── {id}.meta.json  # Job metadata (status, CLI, PID, timestamps)
-    ├── {id}.ndjson     # Streaming event log
-    └── ...             # Max 50 non-running (LRU prune)
+    ├── {id}.meta.json  # status, CLI, PID, timestamps
+    └── {id}.ndjson     # streaming event log
 ```
 
----
+### Security
 
-## Integration with cli-jaw
-
-OME serves as the **process orchestration engine** for [cli-jaw](https://github.com/lidge-jun/cli-jaw). See [CLI-JAW-REFERENCE.md](CLI-JAW-REFERENCE.md) for the full integration guide.
-
-```typescript
-// cli-jaw dispatch — before (direct spawn)
-const result = await spawnCliProcess('claude', task);
-
-// cli-jaw dispatch — after (OME)
-import { dispatch, initDb } from 'ome';
-initDb(join(JAW_HOME, 'ome.db'));
-const result = await dispatch(employeeName, task, { cwd: projectRoot });
-// result.jobId + result.sessionId available for tracking
-```
+| Concern | How it's handled |
+|---------|-----------------|
+| XSS | `textContent` only, no `innerHTML` for dynamic values |
+| Path traversal | Regex-guarded job IDs on all endpoints |
+| Email privacy | Account emails masked in dashboard (`ab***@domain.com`) |
+| Network | Binds to `127.0.0.1` by default; `0.0.0.0` is opt-in |
+| Body limits | 1MB cap, 30s request timeout |
 
 ---
 
@@ -428,76 +238,52 @@ const result = await dispatch(employeeName, task, { cwd: projectRoot });
 ```bash
 npm run build         # compile TypeScript
 npm run typecheck     # tsc --noEmit
-npm test              # build + run tests
+npm test              # build + run all 95 tests
 npm run dev           # watch mode
-npm run clean         # rm -rf dist
 ```
 
-### Project Structure
+<details>
+<summary>Project structure</summary>
 
 ```
 ome/
 ├── src/
-│   ├── cli/             # CLI entry (12 subcommands)
-│   ├── dispatch/        # Employee dispatch + session resume
-│   ├── observe/         # NDJSON parser + watch/inspect
-│   ├── queue/           # In-memory message queue
-│   ├── registry/        # SQLite CRUD + types
-│   ├── seed/            # Default employee presets
-│   ├── spawn/           # Process spawning + job tracking
-│   │   ├── args.ts      # Per-CLI arg builders (new + resume)
-│   │   ├── index.ts     # spawnAgent, killJob, session capture
-│   │   ├── jobs.ts      # File-based job persistence
-│   │   └── process-kill.ts
-│   ├── web/             # HTTP dashboard + REST API
-│   │   ├── dashboard.ts       # Inline HTML/JS (SVG icons, quota, side panel)
-│   │   ├── dashboard-styles.ts
-│   │   ├── quota-proxy.ts     # cli-jaw quota proxy (30s cache)
-│   │   └── routes.ts          # REST endpoints
-│   └── index.ts         # Public library exports
-├── tests/               # node:test + node:assert/strict (95 tests)
-├── devlog/              # jawdev-format development plans
-├── structure/           # Architecture documentation
-├── docs/                # GitHub Pages + screenshots
-├── scripts/             # Release + publish helpers
-├── package.json
-└── tsconfig.json
+│   ├── cli/          # CLI entry (14 subcommands)
+│   ├── dispatch/     # Employee dispatch + session resume
+│   ├── observe/      # Event parser, watch, inspect, progress, stall, summary
+│   ├── queue/        # Message queue
+│   ├── registry/     # SQLite (employees, sessions, quota)
+│   ├── seed/         # Default employee presets
+│   ├── spawn/        # Process spawning, per-CLI arg builders, job tracking
+│   ├── web/          # HTTP dashboard + REST API
+│   └── index.ts      # Public library exports
+├── tests/            # 95 tests across 14 suites
+└── devlog/           # Jawdev development plans
 ```
 
-### Test Suite
+</details>
 
-95 tests across 14 suites:
+<details>
+<summary>Test suite (95 tests, 14 suites)</summary>
 
-| Suite | Tests | Coverage |
-|-------|-------|----------|
-| cli/smoke | 7 | --help, status, registry, init, doctor, dry-run, unknown |
-| dispatch | 3 | Unknown employee, jobId contract, unsupported prompt |
-| observe/inspect | 2 | Inspect existing/non-existent jobs |
-| observe/parser | 19 | Claude/Codex/Gemini/OpenCode/Grok parsing, null cases |
-| observe/progress | 4 | Progress tracking, tool counts, elapsed time |
-| observe/stall | 5 | Stall detection: active/warning/stalled states |
-| observe/summary | 5 | Post-completion: tools, errors, exit codes |
-| seed | 2 | Seed defaults, idempotent |
-| spawn/args | 16 | All 7 providers: new/resume, system prompt rejection |
-| spawn/codex-app-events | 12 | JSON-RPC notification mapping, edge cases |
-| spawn/jobs | 6 | Job CRUD, status transitions, path traversal |
-| spawn/preflight | 3 | CLI path resolution, availability detection |
-| spawn/session-id | 4 | Per-provider session ID extraction |
-| web/routes | 7 | REST endpoints, validation, XSS, body limits |
+| Suite | Tests | Covers |
+|-------|------:|--------|
+| cli/smoke | 7 | help, status, registry, init, doctor, dry-run |
+| dispatch | 3 | Employee lookup, jobId contract |
+| observe/inspect | 2 | Existing and missing jobs |
+| observe/parser | 19 | All 7 providers + edge cases |
+| observe/progress | 4 | Tool counts, elapsed time |
+| observe/stall | 5 | Active, warning, stalled states |
+| observe/summary | 5 | Completion summary, errors, cancellation |
+| seed | 2 | Seed + idempotency |
+| spawn/args | 16 | All providers: new, resume, rejection guards |
+| spawn/codex-app-events | 12 | JSON-RPC notification mapping |
+| spawn/jobs | 6 | CRUD, status transitions, path traversal |
+| spawn/preflight | 3 | Path resolution, availability |
+| spawn/session-id | 4 | Per-provider session extraction |
+| web/routes | 7 | REST endpoints, validation, body limits |
 
-All tests use temporary `OME_HOME` directories for isolation.
-
----
-
-## Release
-
-```bash
-npm run release:patch    # bump patch, publish, push tags
-npm run release:minor    # bump minor
-npm run release:major    # bump major
-```
-
-Pre-publish runs: typecheck → build → test → lint:pkg → dry-run.
+</details>
 
 ---
 
