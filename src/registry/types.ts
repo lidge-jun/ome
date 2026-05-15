@@ -81,3 +81,28 @@ export interface QuotaConfig {
     hourlyLimit: number;
     updatedAt: string;
 }
+
+export interface QuotaWindow {
+    label: string;
+    percent: number;
+    resetsAt?: string | number | null;
+    modelId?: string;
+}
+
+export interface QuotaEntry {
+    account?: { email?: string; type?: string; plan?: string; tier?: string };
+    windows?: QuotaWindow[];
+    authenticated?: boolean;
+    error?: boolean;
+    reason?: string;
+}
+
+export interface LiveQuota {
+    claude: QuotaEntry;
+    codex: QuotaEntry;
+    gemini: QuotaEntry;
+    opencode: QuotaEntry;
+    copilot: QuotaEntry;
+    fetchedAt: string;
+    source: 'cli-jaw' | 'unavailable';
+}

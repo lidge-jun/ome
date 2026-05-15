@@ -101,6 +101,16 @@ export function setQuota(config: Partial<QuotaConfig>): void {
     ).run(config.dailyLimit ?? 0, config.hourlyLimit ?? 0, config.dailyLimit ?? 0, config.hourlyLimit ?? 0);
 }
 
+export function updateEmployee(name: string, updates: Partial<EmployeeInput>): Employee | null {
+    const existing = findEmployee(name);
+    if (!existing) return null;
+    const d = getDb();
+    d.prepare(
+        'UPDATE employees SET cli = ?, model = ?, role = ? WHERE name = ?'
+    ).run(updates.cli ?? existing.cli, updates.model ?? existing.model, updates.role ?? existing.role, name);
+    return findEmployee(name);
+}
+
 export function addEmployeeIfNotExists(input: EmployeeInput): { added: boolean; employee: Employee } {
     const existing = findEmployee(input.name);
     if (existing) return { added: false, employee: existing };

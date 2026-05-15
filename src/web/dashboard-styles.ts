@@ -22,14 +22,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat-row .label{color:#666}
 .stat-row .value{font-weight:600;color:#1a1a1a}
 
-/* CLI list */
-.cli-item{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:.85rem}
+/* CLI Quota Cards */
+.cli-quota-card{padding:10px;border:1px solid #e8e8e8;border-radius:8px;margin-bottom:8px;background:#fafafa}
+.cli-quota-header{display:flex;align-items:center;gap:6px}
 .cli-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .cli-dot.online{background:#4caf50}
-.cli-dot.offline{background:#e0e0e0}
-.cli-icon{font-size:1rem}
-.cli-name{font-weight:600;flex:1}
-.cli-detail{font-size:.75rem;color:#888}
+.cli-dot.yellow{background:#f5a623}
+.cli-dot.red{background:#e0e0e0}
+.cli-svg{display:flex;align-items:center}
+.cli-name{font-weight:600;font-size:.85rem}
+.cli-account{font-size:.7rem;color:#888;margin:2px 0 4px 20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cli-auth-warn{font-size:.75rem;color:#e67e22;margin:4px 0 0 20px}
+.cli-bars{margin-top:4px;padding-left:20px}
+.cli-unavailable{text-align:center;color:#999;font-size:.8rem;padding:12px}
+
+/* Quota window bars */
+.quota-window{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:.75rem}
+.win-label{width:22px;text-align:right;color:#666;flex-shrink:0}
+.win-bar{flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden}
+.win-fill{height:100%;border-radius:3px;transition:width .3s}
+.win-fill.ok{background:#4a9eff}
+.win-fill.warn{background:#f5a623}
+.win-fill.over{background:#e74c3c}
+.win-pct{width:30px;text-align:right;color:#555;flex-shrink:0}
+.win-reset{color:#aaa;font-size:.7rem;width:36px;text-align:right;flex-shrink:0}
 
 /* Refresh */
 .refresh-row{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:14px;border-top:1px solid #eee}
@@ -46,14 +62,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* Employee cards */
 .emp-grid{display:flex;flex-direction:column;gap:16px;max-width:480px}
+.emp-empty{text-align:center;color:#999;font-size:.9rem;padding:40px 20px;background:#fff;border:1px dashed #ddd;border-radius:12px;max-width:480px}
 .emp-card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:20px;position:relative}
-.emp-card.built-in{border-color:#d0d0d0}
 .emp-card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
 .emp-card-header .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .emp-card-header .dot.idle{background:#4caf50}
+.emp-card-header .dot.warn{background:#f5a623}
 .emp-card-header .dot.busy{background:#ff9800}
+.emp-cli-icon{display:flex;align-items:center}
 .emp-card-header .name{font-weight:700;font-size:1rem;flex:1}
-.emp-card-header .badge{background:#f0f0f0;color:#666;font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
 .emp-card-header .del-btn{background:none;border:none;color:#ccc;cursor:pointer;font-size:1.2rem;padding:2px 6px;line-height:1}
 .emp-card-header .del-btn:hover{color:#e53935}
 
@@ -62,9 +79,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .field label{display:block;font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
 .field select,.field input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:.85rem;background:#fafafa;color:#1a1a1a;appearance:auto}
 .field select:focus,.field input:focus{outline:none;border-color:#90caf9}
-
-.emp-status{font-size:.8rem;color:#4caf50;margin-top:6px}
-.emp-status.busy{color:#ff9800}
 
 /* Jobs section */
 .jobs-section{margin-top:36px;max-width:800px}
@@ -82,18 +96,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .inspect-btn{background:none;border:1px solid #ddd;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.8rem;color:#555}
 .inspect-btn:hover{background:#f0f0f0}
 
-/* Quota section */
-.quota-section{margin-top:36px;max-width:480px}
-.quota-section h2{font-size:1.1rem;font-weight:600;margin-bottom:16px}
-.quota-form{display:flex;gap:12px;align-items:flex-end}
-.quota-form .field{flex:1}
-.quota-form button{padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:.85rem}
-.quota-form button:hover{background:#f0f0f0}
-
-/* Add employee modal-inline */
-.add-form{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:20px;margin-bottom:16px;display:none}
+/* Add employee form */
+.add-form{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:20px;margin-bottom:16px;display:none;max-width:480px}
 .add-form.open{display:block}
 .add-form h3{font-size:.95rem;font-weight:600;margin-bottom:14px}
+.add-error{color:#e53935;font-size:.8rem;margin-bottom:8px;min-height:1em}
 .add-form .actions{display:flex;gap:8px;margin-top:14px}
 .add-form .actions button{padding:8px 16px;border-radius:8px;font-size:.85rem;cursor:pointer}
 .add-form .actions .primary{background:#1a1a1a;color:#fff;border:none}
@@ -101,9 +108,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-form .actions .cancel{background:none;border:1px solid #ddd;color:#555}
 .add-form .actions .cancel:hover{background:#f5f5f5}
 
+/* Save row */
+.save-row{margin-top:10px;text-align:right}
+.save-row.hidden{display:none}
+.save-btn{background:#1a1a1a;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:.85rem;cursor:pointer}
+.save-btn:hover{background:#333}
+
 /* Job detail */
 #job-detail{display:none;margin-top:16px;padding:20px;background:#fff;border:1px solid #e8e8e8;border-radius:10px}
 #job-detail h3{font-size:.95rem;font-weight:600;margin-bottom:10px}
 #job-detail pre{white-space:pre-wrap;font-size:.8rem;max-height:400px;overflow:auto;background:#fafafa;padding:12px;border-radius:8px;border:1px solid #eee}
+
+/* Toast */
+#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 18px;border-radius:8px;font-size:.85rem;color:#fff;opacity:0;transform:translateX(40px);transition:opacity .3s,transform .3s;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast-success{background:#2e7d32}
+.toast-warn{background:#e65100}
+.toast-error{background:#c62828}
 `;
 }

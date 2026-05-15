@@ -1,9 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { listEmployees, addEmployee, removeEmployee, getQuota, setQuota } from '../registry/db.js';
+import { listEmployees, addEmployee, removeEmployee, updateEmployee, getQuota, setQuota } from '../registry/db.js';
 import { listJobs, isValidJobId } from '../spawn/jobs.js';
 import { isAgentBusy, getActiveJobs } from '../spawn/index.js';
 import { inspect } from '../observe/index.js';
 import { messageQueue } from '../queue/index.js';
+import { fetchLiveQuota } from './quota-proxy.js';
 
 const MAX_BODY = 1024 * 1024;
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
@@ -44,6 +45,22 @@ export function handleApiRequest(req: IncomingMessage, res: ServerResponse, url:
             }).catch(() => error(res, 400, 'body read failed'));
             return;
         }
+        if (path.startsWith('/api/employees/') && method === 'PUT') {
+            if (!isJsonContent(req)) { error(res, 415, 'Content-Type must be application/json'); return; }
+            const name = decodeURIComponent(path.slice('/api/employees/'.length));
+            readBody(req).then(body => {
+                let parsed: Record<string, unknown>;
+                try { parsed = JSON.parse(body); } catch { error(res, 400, 'invalid JSON'); return; }
+                const emp = updateEmployee(name, {
+                    cli: parsed['cli'] ? String(parsed['cli']) : undefined,
+                    model: parsed['model'] ? String(parsed['model']) : undefined,
+                    role: parsed['role'] ? String(parsed['role']) : undefined,
+                });
+                if (!emp) { error(res, 404, 'employee not found'); return; }
+                json(res, emp);
+            }).catch(() => error(res, 400, 'body read failed'));
+            return;
+        }
         if (path.startsWith('/api/employees/') && method === 'DELETE') {
             const name = decodeURIComponent(path.slice('/api/employees/'.length));
             const ok = removeEmployee(name);
@@ -62,6 +79,12 @@ export function handleApiRequest(req: IncomingMessage, res: ServerResponse, url:
             const state = inspect(jobId);
             if (!state) { error(res, 404, 'job not found'); return; }
             json(res, state);
+            return;
+        }
+
+        // Live Quota (proxy to cli-jaw)
+        if (path === '/api/quota/live' && method === 'GET') {
+            fetchLiveQuota().then(data => json(res, data)).catch(() => error(res, 502, 'quota proxy failed'));
             return;
         }
 

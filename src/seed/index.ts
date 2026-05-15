@@ -2,9 +2,10 @@ import { addEmployeeIfNotExists } from '../registry/db.js';
 import type { EmployeeInput } from '../registry/types.js';
 
 const DEFAULTS: EmployeeInput[] = [
-    { name: 'Claude', cli: 'claude', model: 'sonnet', role: 'General-purpose assistant' },
-    { name: 'Codex', cli: 'codex', model: 'o3-pro', role: 'Code generation and review' },
-    { name: 'Gemini', cli: 'gemini', model: null, role: 'Research and analysis' },
+    { name: 'Frontend', cli: 'claude', model: 'opus', role: 'UI/UX, CSS, components' },
+    { name: 'Backend', cli: 'codex', model: 'gpt-5.5', role: 'API, DB, server logic' },
+    { name: 'Data', cli: 'gemini', model: 'gemini-3.1-pro', role: 'Data pipeline, analysis, ML' },
+    { name: 'Docs', cli: 'codex', model: null, role: 'Documentation, README, API docs' },
 ];
 
 export function seedDefaults(): { added: string[]; skipped: string[] } {
