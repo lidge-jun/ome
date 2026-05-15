@@ -215,7 +215,7 @@ function makeCliCard(cli,entry){
 
 function shortLabel(l){
   if(!l)return'';
-  return l.replace(/^(\\d+)-hour$/,'$1h').replace(/^(\\d+)-day$/,'$1d').replace(/^(\\d+)-day\\s+/,'$1d ');
+  var m=l.match(/^(\\d+)-(hour|day)/);if(m)return m[1]+(m[2]==='hour'?'h':'d');return l;
 }
 function shortReset(r){
   if(!r)return'';
