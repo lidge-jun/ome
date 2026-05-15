@@ -1,4 +1,4 @@
-export type AgentCli = 'claude' | 'codex' | 'gemini' | 'copilot' | 'opencode' | string;
+export type AgentCli = 'claude' | 'codex' | 'codex-app' | 'gemini' | 'copilot' | 'grok' | 'opencode' | string;
 
 export interface Employee {
     id: string;
@@ -112,7 +112,9 @@ export interface QuotaEntry {
 export interface LiveQuota {
     claude: QuotaEntry;
     codex: QuotaEntry;
+    'codex-app': QuotaEntry;
     gemini: QuotaEntry;
+    grok: QuotaEntry;
     opencode: QuotaEntry;
     copilot: QuotaEntry;
     fetchedAt: string;

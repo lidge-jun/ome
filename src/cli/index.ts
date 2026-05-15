@@ -74,6 +74,13 @@ async function handleSpawn(args: string[]): Promise<void> {
     const cli = values.cli ?? 'claude';
     const model = values.model;
     if (values['dry-run']) {
+        if (cli === 'codex-app') {
+            console.log(`[dry-run] codex-app uses JSON-RPC app-server mode (codex app-server --listen stdio://)`);
+            console.log(`  model: ${model ?? 'gpt-5.4'}`);
+            console.log(`  protocol: JSON-RPC 2.0 over stdio`);
+            console.log(`  lifecycle: initialize → thread/start → turn/start → turn/completed → close`);
+            return;
+        }
         const contract = buildArgs(cli, prompt, { cli, model });
         printSpawnDryRun(cli, prompt, model, contract);
         return;
@@ -332,7 +339,7 @@ function handleStatus(): void {
 }
 
 function handleDoctor(): void {
-    const clis = ['claude', 'codex', 'gemini', 'copilot', 'opencode'];
+    const clis = ['claude', 'codex', 'codex-app', 'gemini', 'copilot', 'grok', 'opencode'];
     console.log('CLI Preflight:');
     for (const cli of clis) {
         const result = preflightCli(cli);

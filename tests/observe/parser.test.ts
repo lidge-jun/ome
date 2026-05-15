@@ -100,4 +100,45 @@ describe('parseLine', () => {
         assert.equal(ev?.type, 'unknown');
         assert.ok(ev?.message);
     });
+
+    it('parses Grok thought events as thinking', () => {
+        const ev = parseLine('grok', '{"type":"thought","data":"Let me analyze..."}');
+        assert.equal(ev?.type, 'thinking');
+        assert.ok(ev?.message.includes('Let me analyze'));
+    });
+
+    it('parses Grok text events as assistant', () => {
+        const ev = parseLine('grok', '{"type":"text","data":"The answer is 42"}');
+        assert.equal(ev?.type, 'assistant');
+        assert.ok(ev?.message.includes('42'));
+    });
+
+    it('parses Grok tool_use events', () => {
+        const ev = parseLine('grok', '{"type":"tool_use","name":"Read","arguments":"{\\"path\\":\\"/foo\\"}"}');
+        assert.equal(ev?.type, 'tool_use');
+        assert.equal(ev?.toolName, 'Read');
+    });
+
+    it('parses Grok tool_call as tool_use (alias)', () => {
+        const ev = parseLine('grok', '{"type":"tool_call","name":"Bash","arguments":"ls"}');
+        assert.equal(ev?.type, 'tool_use');
+        assert.equal(ev?.toolName, 'Bash');
+    });
+
+    it('parses Grok tool_result events', () => {
+        const ev = parseLine('grok', '{"type":"tool_result","name":"Read","output":"file contents","status":"completed"}');
+        assert.equal(ev?.type, 'tool_result');
+        assert.equal(ev?.toolName, 'Read');
+    });
+
+    it('parses Grok error events', () => {
+        const ev = parseLine('grok', '{"type":"error","message":"Rate limit"}');
+        assert.equal(ev?.type, 'error');
+        assert.ok(ev?.message.includes('Rate limit'));
+    });
+
+    it('parses Grok end events as system', () => {
+        const ev = parseLine('grok', '{"type":"end","sessionId":"grok-abc"}');
+        assert.equal(ev?.type, 'system');
+    });
 });

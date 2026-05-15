@@ -26,8 +26,15 @@ function buildNewResult(cli: AgentCli, prompt: string, opts: SpawnOptions): Buil
             return { args: buildGeminiNew(prompt, opts), stdinPrompt: false };
         case 'copilot':
             return buildCopilotNew(prompt, opts);
+        case 'grok':
+            return { args: buildGrokNew(prompt, opts), stdinPrompt: false };
         case 'opencode':
             return { args: buildOpencodeNew(prompt, opts), stdinPrompt: false };
+        case 'codex-app':
+            throw new Error(
+                'codex-app uses JSON-RPC app-server mode. ' +
+                'Use CodexAppClient instead of buildArgs().',
+            );
         default:
             return buildGenericNew(cli, opts);
     }
@@ -44,8 +51,15 @@ function buildResumeResult(cli: AgentCli, prompt: string, opts: SpawnOptions): B
             return { args: buildGeminiResume(sid, prompt, opts), stdinPrompt: false };
         case 'opencode':
             return { args: buildOpencodeResume(sid, prompt, opts), stdinPrompt: false };
+        case 'grok':
+            return { args: buildGrokResume(sid, prompt, opts), stdinPrompt: false };
         case 'copilot':
             return buildCopilotResume(sid, prompt, opts);
+        case 'codex-app':
+            throw new Error(
+                'codex-app uses JSON-RPC app-server mode. ' +
+                'Use CodexAppClient instead of buildArgs().',
+            );
         default:
             return buildGenericResume(cli);
     }
@@ -175,6 +189,31 @@ function buildOpencodeResume(sid: string, prompt: string, opts: SpawnOptions): s
     const args = ['run', '-s', sid, '--thinking', '--format', 'json'];
     args.push('-m', opts.model ?? DEFAULT_OPENCODE_MODEL);
     args.push(prompt);
+    return args;
+}
+
+function buildGrokNew(prompt: string, opts: SpawnOptions): string[] {
+    const args = [
+        '-p', prompt,
+        '--output-format', 'streaming-json',
+        '--no-alt-screen',
+        '--always-approve',
+        '--permission-mode', 'bypassPermissions',
+    ];
+    if (opts.model) args.push('-m', opts.model);
+    return args;
+}
+
+function buildGrokResume(sid: string, prompt: string, opts: SpawnOptions): string[] {
+    const args = [
+        '-p', prompt,
+        '--resume', sid,
+        '--output-format', 'streaming-json',
+        '--no-alt-screen',
+        '--always-approve',
+        '--permission-mode', 'bypassPermissions',
+    ];
+    if (opts.model) args.push('-m', opts.model);
     return args;
 }
 

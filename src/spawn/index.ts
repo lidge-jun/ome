@@ -2,6 +2,8 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import type { SpawnOptions, SpawnResult } from '../registry/types.js';
 import { buildArgs } from './args.js';
+import { CodexAppClient } from './codex-app-client.js';
+import { mapCodexAppNotification } from './codex-app-events.js';
 import { createJob, updateJob, completeJob, cancelJob, appendJobLog, closeJobStream, readJobMeta, listRunningJobs, isProcessAlive } from './jobs.js';
 import { terminateProcessTree, scheduleForceKill } from './process-kill.js';
 import { resolveCliPath } from './preflight.js';
@@ -32,6 +34,11 @@ export function getActiveJobs(): ReadonlyMap<string, ChildProcess> {
 
 export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: string; result: Promise<SpawnResult> } {
     const cli = opts.cli ?? 'claude';
+
+    if (cli === 'codex-app') {
+        return spawnCodexApp(prompt, opts);
+    }
+
     const cliPath = resolveCliPath(cli);
     const { args, stdinPrompt } = buildArgs(cli, prompt, opts);
     const env = { ...process.env, ...opts.env };
@@ -175,6 +182,13 @@ export function spawnAgent(prompt: string, opts: SpawnOptions = {}): { jobId: st
 
 export function extractSessionId(cli: string, event: unknown): string | undefined {
     if (!isRecord(event)) return undefined;
+
+    if (cli === 'grok') {
+        return String(event['type'] ?? '') === 'end'
+            ? firstString(event, ['sessionId', 'session_id'])
+            : undefined;
+    }
+
     const common = firstString(event, ['session_id', 'sessionId', 'conversation_id', 'conversationId']);
     if (common) return common;
 
@@ -197,6 +211,113 @@ function firstString(obj: Record<string, unknown>, keys: string[]): string | und
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function spawnCodexApp(prompt: string, opts: SpawnOptions): { jobId: string; result: Promise<SpawnResult> } {
+    const job = createJob('codex-app', prompt, opts.model);
+    let detectedSessionId: string | undefined;
+
+    const result = new Promise<SpawnResult>((resolve, reject) => {
+        const client = new CodexAppClient({
+            model: opts.model,
+            cwd: opts.cwd,
+            env: opts.env,
+        });
+        let fullText = '';
+        let settled = false;
+        const startTime = Date.now();
+
+        const settle = (code: number) => {
+            if (settled) return;
+            settled = true;
+            closeJobStream(job.id);
+            activeJobs.delete(job.id);
+            completeJob(job.id, code);
+            bus.emit('agent_done', { cli: 'codex-app', code, pid: client.pid, jobId: job.id });
+            resolve({
+                text: fullText,
+                code,
+                jobId: job.id,
+                sessionId: detectedSessionId,
+                stderr: client.stderr || undefined,
+                durationMs: Date.now() - startTime,
+            });
+        };
+
+        client.on('notification', (method: string, params: Record<string, unknown>) => {
+            const mapped = mapCodexAppNotification(method, params);
+            if (!mapped) return;
+
+            if (mapped.sessionId && !detectedSessionId) {
+                detectedSessionId = mapped.sessionId;
+            }
+
+            const line = JSON.stringify(mapped.event);
+            appendJobLog(job.id, line);
+            bus.emit('job_log', { jobId: job.id, line });
+
+            if (mapped.event.type === 'assistant') {
+                fullText += mapped.event.message;
+            }
+
+            opts.onStdout?.(line + '\n');
+
+            if (mapped.flushThinking && method === 'turn/completed') {
+                client.closeGracefully().catch(() => {});
+            }
+        });
+
+        client.on('stderr', (text: string) => opts.onStderr?.(text));
+
+        client.on('error', (err: Error) => {
+            if (!settled) {
+                settle(1);
+                bus.emit('agent_error', { cli: 'codex-app', error: err.message, jobId: job.id });
+                reject(err);
+            }
+        });
+
+        client.on('exit', (code: number | null) => {
+            settle(code ?? 1);
+        });
+
+        try {
+            client.spawn();
+            if (client.proc) {
+                activeJobs.set(job.id, client.proc);
+            }
+            updateJob(job.id, { pid: client.pid ?? null });
+            bus.emit('agent_start', { cli: 'codex-app', pid: client.pid, jobId: job.id });
+
+            (async () => {
+                try {
+                    await client.initialize();
+                    if (opts.sessionId) {
+                        await client.resumeThread(opts.sessionId);
+                    } else {
+                        await client.startThread(opts.systemPrompt);
+                    }
+                    await client.startTurn(prompt);
+                } catch (err) {
+                    if (!settled) {
+                        client.kill();
+                        reject(err instanceof Error ? err : new Error(String(err)));
+                    }
+                }
+            })();
+
+            if (opts.timeout) {
+                setTimeout(() => {
+                    if (!settled) client.kill();
+                }, opts.timeout);
+            }
+        } catch (err) {
+            settle(1);
+            reject(err instanceof Error ? err : new Error(String(err)));
+        }
+    });
+
+    return { jobId: job.id, result };
 }
 
 export function killAllJobs(reason = 'user'): number {

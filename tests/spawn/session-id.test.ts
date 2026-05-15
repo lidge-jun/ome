@@ -16,5 +16,10 @@ describe('extractSessionId', () => {
     it('extracts OpenCode sessionID events', () => {
         assert.equal(extractSessionId('opencode', { type: 'text', sessionID: 'opencode-session' }), 'opencode-session');
     });
+
+    it('extracts Grok session ID from end event only', () => {
+        assert.equal(extractSessionId('grok', { type: 'end', sessionId: 'grok-abc' }), 'grok-abc');
+        assert.equal(extractSessionId('grok', { type: 'text', sessionId: 'grok-abc' }), undefined);
+    });
 });
 

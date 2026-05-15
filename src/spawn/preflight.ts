@@ -16,8 +16,10 @@ export function resolveCliPath(cli: AgentCli): string {
     const known: Record<string, string> = {
         claude: 'claude',
         codex: 'codex',
+        'codex-app': 'codex',
         gemini: 'gemini',
         copilot: 'copilot',
+        grok: 'grok',
         opencode: 'opencode',
     };
     return known[cli] ?? cli;

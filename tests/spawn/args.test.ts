@@ -157,6 +157,56 @@ describe('spawn args', () => {
             /Session resume is not supported for generic CLI "python3"/,
         );
     });
+
+    it('builds Grok args with streaming-json and auto-approve', () => {
+        const result = buildArgs('grok', 'hello', { model: 'grok-build' });
+        assert.deepEqual(result.args, [
+            '-p', 'hello',
+            '--output-format', 'streaming-json',
+            '--no-alt-screen',
+            '--always-approve',
+            '--permission-mode', 'bypassPermissions',
+            '-m', 'grok-build',
+        ]);
+        assert.equal(result.stdinPrompt, false);
+    });
+
+    it('builds Grok resume args with session ID', () => {
+        const result = buildArgs('grok', 'continue', {
+            sessionId: 'grok-sid-123',
+            model: 'grok-build',
+        });
+        assert.deepEqual(result.args, [
+            '-p', 'continue',
+            '--resume', 'grok-sid-123',
+            '--output-format', 'streaming-json',
+            '--no-alt-screen',
+            '--always-approve',
+            '--permission-mode', 'bypassPermissions',
+            '-m', 'grok-build',
+        ]);
+        assert.equal(result.stdinPrompt, false);
+    });
+
+    it('rejects Grok system prompts', () => {
+        assert.throws(
+            () => buildArgs('grok', 'hello', { systemPrompt: 'You are Data.' }),
+            /systemPrompt is not supported for CLI "grok"/,
+        );
+    });
+
+    it('builds Grok args without model when omitted', () => {
+        const result = buildArgs('grok', 'hello');
+        assert.equal(result.args.includes('-m'), false);
+        assert.equal(result.stdinPrompt, false);
+    });
+
+    it('rejects codex-app through buildArgs (must use CodexAppClient)', () => {
+        assert.throws(
+            () => buildArgs('codex-app', 'hello'),
+            /codex-app uses JSON-RPC app-server mode/,
+        );
+    });
 });
 
 function assertKnownInvalidFlagsAbsent(args: string[]): void {

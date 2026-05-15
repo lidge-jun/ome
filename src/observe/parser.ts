@@ -16,6 +16,7 @@ export function parseLine(cli: string, raw: string): ProgressEvent | null {
         case 'codex': return parseCodexEvent(parsed as Record<string, unknown>, ts);
         case 'gemini': return parseGeminiEvent(parsed as Record<string, unknown>, ts);
         case 'opencode': return parseOpenCodeEvent(parsed as Record<string, unknown>, ts);
+        case 'grok': return parseGrokEvent(parsed as Record<string, unknown>, ts);
         default: return parseGenericEvent(parsed as Record<string, unknown>, ts);
     }
 }
@@ -115,6 +116,37 @@ function parseOpenCodeEvent(obj: Record<string, unknown>, ts: string): ProgressE
     }
     if (type === 'error') {
         return { type: 'error', message: JSON.stringify(obj['error'] ?? obj).slice(0, 200), phase: null, toolName: null, raw: obj, ts };
+    }
+    return parseGenericEvent(obj, ts);
+}
+
+function parseGrokEvent(obj: Record<string, unknown>, ts: string): ProgressEvent {
+    const type = String(obj['type'] ?? 'unknown');
+
+    if (type === 'thought') {
+        const text = String(obj['data'] ?? obj['text'] ?? '');
+        return { type: 'thinking', message: text.slice(0, 200), phase: null, toolName: null, raw: obj, ts };
+    }
+    if (type === 'text') {
+        const text = String(obj['data'] ?? obj['text'] ?? '');
+        return { type: 'assistant', message: text.slice(0, 200), phase: null, toolName: null, raw: obj, ts };
+    }
+    if (type === 'tool_use' || type === 'tool_call' || type === 'tool_start') {
+        const toolName = String(obj['name'] ?? obj['toolName'] ?? 'tool');
+        const detail = String(obj['arguments'] ?? obj['args'] ?? obj['input'] ?? '');
+        return { type: 'tool_use', message: `${toolName}: ${detail}`.slice(0, 200), phase: null, toolName, raw: obj, ts };
+    }
+    if (type === 'tool_result' || type === 'tool_output' || type === 'tool_end') {
+        const toolName = String(obj['name'] ?? obj['toolName'] ?? 'tool');
+        const status = String(obj['status'] ?? 'completed');
+        const output = String(obj['output'] ?? obj['result'] ?? obj['data'] ?? '');
+        return { type: 'tool_result', message: `${toolName} [${status}]: ${output}`.slice(0, 200), phase: null, toolName, raw: obj, ts };
+    }
+    if (type === 'error') {
+        return { type: 'error', message: String(obj['message'] ?? obj['error'] ?? JSON.stringify(obj)).slice(0, 200), phase: null, toolName: null, raw: obj, ts };
+    }
+    if (type === 'end') {
+        return { type: 'system', message: 'session ended', phase: null, toolName: null, raw: obj, ts };
     }
     return parseGenericEvent(obj, ts);
 }

@@ -9,7 +9,9 @@ let cache: { data: LiveQuota; ts: number } | null = null;
 const UNAVAILABLE: LiveQuota = {
     claude: { authenticated: false },
     codex: { authenticated: false },
+    'codex-app': { authenticated: false },
     gemini: { authenticated: false },
+    grok: { authenticated: false },
     opencode: { authenticated: false },
     copilot: { authenticated: false },
     fetchedAt: '',
@@ -25,7 +27,9 @@ export async function fetchLiveQuota(): Promise<LiveQuota> {
         const data: LiveQuota = {
             claude: (raw.claude ?? { authenticated: false }) as LiveQuota['claude'],
             codex: (raw.codex ?? { authenticated: false }) as LiveQuota['codex'],
+            'codex-app': (raw['codex-app'] ?? { authenticated: false }) as LiveQuota['codex-app'],
             gemini: (raw.gemini ?? { authenticated: false }) as LiveQuota['gemini'],
+            grok: (raw.grok ?? { authenticated: false }) as LiveQuota['grok'],
             opencode: (raw.opencode ?? { authenticated: false }) as LiveQuota['opencode'],
             copilot: (raw.copilot ?? { authenticated: false }) as LiveQuota['copilot'],
             fetchedAt: new Date().toISOString(),
