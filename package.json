@@ -12,14 +12,39 @@
     ".": { "import": "./dist/src/index.js", "types": "./dist/src/index.d.ts" },
     "./observe": { "import": "./dist/src/observe/index.js", "types": "./dist/src/observe/index.d.ts" }
   },
+  "files": [
+    "dist/src/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm run build && npm run test && npm run lint:pkg && npm run publish:dry-run",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "test": "node --test dist/tests/**/*.test.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "lint:pkg": "node -e \"const p=require('./package.json'); const req=['name','version','bin','main','types']; for(const k of req){if(!p[k])throw new Error('missing '+k)} if(!p.files.includes('dist/src/'))throw new Error('files[] must include dist/src/')\"",
+    "publish:dry-run": "node scripts/publish-dry-run.mjs",
+    "release:patch": "npm version patch && npm publish && git push origin main --tags",
+    "release:minor": "npm version minor && npm publish && git push origin main --tags",
+    "release:major": "npm version major && npm publish && git push origin main --tags"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lidge-jun/ome.git"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "orchestration",
+    "multi-agent",
+    "claude",
+    "codex",
+    "gemini",
+    "cli"
+  ],
   "engines": {
     "node": ">=20"
   },
