@@ -37,14 +37,14 @@ function buildResumeArgs(cli: AgentCli, prompt: string, opts: SpawnOptions): str
 }
 
 function buildClaudeNew(opts: SpawnOptions): string[] {
-    const args = ['--print', '--output-format', 'stream-json'];
+    const args = ['--print', '--verbose', '--output-format', 'stream-json'];
     if (opts.model) args.push('--model', opts.model);
     if (opts.systemPrompt) args.push('--system-prompt', opts.systemPrompt);
     return args;
 }
 
 function buildClaudeResume(sid: string, opts: SpawnOptions): string[] {
-    const args = ['--print', '--output-format', 'stream-json', '--resume', sid];
+    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--resume', sid];
     if (opts.model) args.push('--model', opts.model);
     return args;
 }
