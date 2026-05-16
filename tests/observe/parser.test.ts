@@ -131,10 +131,33 @@ describe('parseLine', () => {
         assert.equal(ev?.toolName, 'Read');
     });
 
+    it('parses Grok part/state completed tool shape as tool_result', () => {
+        const ev = parseLine('grok', JSON.stringify({
+            type: 'tool_use',
+            requestId: 'req-1',
+            part: {
+                tool: 'shell',
+                callID: 'call-1',
+                state: { status: 'completed', output: '/repo' },
+            },
+        }));
+
+        assert.equal(ev?.type, 'tool_result');
+        assert.equal(ev?.toolName, 'shell');
+        assert.equal(ev?.phase, 'call-1');
+        assert.ok(ev?.message.includes('/repo'));
+    });
+
     it('parses Grok error events', () => {
         const ev = parseLine('grok', '{"type":"error","message":"Rate limit"}');
         assert.equal(ev?.type, 'error');
         assert.ok(ev?.message.includes('Rate limit'));
+    });
+
+    it('parses Grok error data payloads', () => {
+        const ev = parseLine('grok', '{"type":"error","data":"Rate limited"}');
+        assert.equal(ev?.type, 'error');
+        assert.ok(ev?.message.includes('Rate limited'));
     });
 
     it('parses Grok end events as system', () => {

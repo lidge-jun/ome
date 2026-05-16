@@ -19,6 +19,21 @@ describe('codex-app event mapper', () => {
         assert.equal(r.event.toolName, 'ls -la');
     });
 
+    it('adds stable dedupe keys for repeated item notifications', () => {
+        const first = mapCodexAppNotification('item/started', {
+            item: { type: 'commandExecution', command: 'pwd', id: 'item-dup' },
+        });
+        const second = mapCodexAppNotification('item/started', {
+            item: { type: 'commandExecution', command: 'pwd', id: 'item-dup' },
+        });
+
+        assert.ok(first);
+        assert.ok(second);
+        assert.equal(first.event.dedupeKey, 'codex-app:item/started:item-dup');
+        assert.equal(second.event.dedupeKey, first.event.dedupeKey);
+        assert.equal(first.event.phase, 'item-dup');
+    });
+
     it('maps item/started as tool_use for fileChange', () => {
         const r = mapCodexAppNotification('item/started', {
             item: { type: 'fileChange', path: 'src/foo.ts', id: 'item-2' },
@@ -33,6 +48,16 @@ describe('codex-app event mapper', () => {
         assert.ok(r);
         assert.equal(r.event.type, 'assistant');
         assert.ok(r.event.message.includes('Hello world'));
+    });
+
+    it('preserves full assistant delta separately from the preview', () => {
+        const delta = 'x'.repeat(260);
+        const r = mapCodexAppNotification('item/agentMessage/delta', { delta });
+
+        assert.ok(r);
+        assert.equal(r.event.type, 'assistant');
+        assert.equal(r.event.message.length, 200);
+        assert.equal(r.event.fullMessage, delta);
     });
 
     it('returns null for empty delta', () => {
