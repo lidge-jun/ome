@@ -132,23 +132,96 @@ function parseGrokEvent(obj: Record<string, unknown>, ts: string): ProgressEvent
         return { type: 'assistant', message: text.slice(0, 200), phase: null, toolName: null, raw: obj, ts };
     }
     if (type === 'tool_use' || type === 'tool_call' || type === 'tool_start') {
-        const toolName = String(obj['name'] ?? obj['toolName'] ?? 'tool');
-        const detail = String(obj['arguments'] ?? obj['args'] ?? obj['input'] ?? '');
-        return { type: 'tool_use', message: `${toolName}: ${detail}`.slice(0, 200), phase: null, toolName, raw: obj, ts };
+        const status = grokStatus(obj);
+        const done = ['completed', 'complete', 'done', 'success', 'succeeded', 'failed', 'error'].includes(status);
+        const toolName = grokToolName(obj);
+        const detail = grokToolDetail(obj);
+        return {
+            type: done ? 'tool_result' : 'tool_use',
+            message: `${toolName}${status ? ` [${status}]` : ''}: ${detail}`.slice(0, 200),
+            phase: grokToolPhase(obj),
+            toolName,
+            raw: obj,
+            ts,
+        };
     }
     if (type === 'tool_result' || type === 'tool_output' || type === 'tool_end') {
-        const toolName = String(obj['name'] ?? obj['toolName'] ?? 'tool');
-        const status = String(obj['status'] ?? 'completed');
-        const output = String(obj['output'] ?? obj['result'] ?? obj['data'] ?? '');
-        return { type: 'tool_result', message: `${toolName} [${status}]: ${output}`.slice(0, 200), phase: null, toolName, raw: obj, ts };
+        const toolName = grokToolName(obj);
+        const status = grokStatus(obj) || 'completed';
+        const output = grokToolDetail(obj);
+        return { type: 'tool_result', message: `${toolName} [${status}]: ${output}`.slice(0, 200), phase: grokToolPhase(obj), toolName, raw: obj, ts };
     }
     if (type === 'error') {
-        return { type: 'error', message: String(obj['message'] ?? obj['error'] ?? JSON.stringify(obj)).slice(0, 200), phase: null, toolName: null, raw: obj, ts };
+        return { type: 'error', message: String(obj['message'] ?? obj['error'] ?? obj['data'] ?? obj['text'] ?? JSON.stringify(obj)).slice(0, 200), phase: null, toolName: null, raw: obj, ts };
     }
     if (type === 'end') {
         return { type: 'system', message: 'session ended', phase: null, toolName: null, raw: obj, ts };
     }
     return parseGenericEvent(obj, ts);
+}
+
+function grokToolPhase(obj: Record<string, unknown>): string | null {
+    const part = asRecord(obj['part']);
+    return strAny(obj, ['id', 'toolCallId', 'tool_call_id', 'toolUseId', 'tool_id', 'toolId', 'call_id', 'callID', 'callId'])
+        || (part ? strAny(part, ['callID', 'id', 'toolCallId', 'tool_call_id']) : null);
+}
+
+function grokToolName(obj: Record<string, unknown>): string {
+    const part = asRecord(obj['part']);
+    const state = asRecord(obj['state']);
+    const partState = part ? asRecord(part['state']) : null;
+    return strAny(obj, ['name', 'toolName', 'tool_name', 'tool', 'command', 'title'])
+        || (part ? strAny(part, ['tool', 'name']) : null)
+        || (state ? strAny(state, ['title']) : null)
+        || (partState ? strAny(partState, ['title']) : null)
+        || 'tool';
+}
+
+function grokToolDetail(obj: Record<string, unknown>): string {
+    const part = asRecord(obj['part']);
+    const state = asRecord(obj['state']);
+    const partState = part ? asRecord(part['state']) : null;
+    const value = firstValue(
+        obj,
+        ['arguments', 'args', 'input', 'parameters', 'rawInput', 'output', 'result', 'data', 'error', 'message'],
+    ) ?? (part ? firstValue(part, ['input', 'output']) : undefined)
+        ?? (state ? firstValue(state, ['input', 'output']) : undefined)
+        ?? (partState ? firstValue(partState, ['input', 'output']) : undefined);
+    return stringifyValue(value);
+}
+
+function grokStatus(obj: Record<string, unknown>): string {
+    const state = asRecord(obj['state']);
+    const part = asRecord(obj['part']);
+    const partState = part ? asRecord(part['state']) : null;
+    return (strAny(obj, ['status']) || (state ? strAny(state, ['status']) : null) || (partState ? strAny(partState, ['status']) : null) || '').toLowerCase();
+}
+
+function strAny(obj: Record<string, unknown>, keys: string[]): string | null {
+    for (const key of keys) {
+        const value = obj[key];
+        if (typeof value === 'string' && value.trim()) return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    }
+    return null;
+}
+
+function firstValue(obj: Record<string, unknown>, keys: string[]): unknown {
+    for (const key of keys) {
+        if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+    }
+    return undefined;
+}
+
+function stringifyValue(value: unknown): string {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
 }
 
 function parseGenericEvent(obj: Record<string, unknown>, ts: string): ProgressEvent {

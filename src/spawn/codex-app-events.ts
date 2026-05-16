@@ -18,7 +18,15 @@ export function mapCodexAppNotification(
         case 'turn/started': {
             const threadId = str(params, 'threadId') || str(params, 'thread_id');
             return {
-                event: { type: 'system', message: 'turn started', phase: null, toolName: null, raw: params, ts },
+                event: {
+                    type: 'system',
+                    message: 'turn started',
+                    dedupeKey: `codex-app:turn/started:${threadId || 'unknown'}`,
+                    phase: null,
+                    toolName: null,
+                    raw: params,
+                    ts,
+                },
                 sessionId: threadId || undefined,
             };
         }
@@ -29,7 +37,15 @@ export function mapCodexAppNotification(
             const toolName = resolveToolName(itemType, item);
             const detail = resolveToolDetail(item);
             return {
-                event: { type: 'tool_use', message: `${toolName}: ${detail}`.slice(0, 200), phase: null, toolName, raw: params, ts },
+                event: {
+                    type: 'tool_use',
+                    message: preview(`${toolName}: ${detail}`),
+                    dedupeKey: itemDedupeKey('started', itemType, item, toolName, detail),
+                    phase: itemPhase(item),
+                    toolName,
+                    raw: params,
+                    ts,
+                },
             };
         }
 
@@ -37,7 +53,15 @@ export function mapCodexAppNotification(
             const delta = str(params, 'delta') || str(params, 'text');
             if (!delta) return null;
             return {
-                event: { type: 'assistant', message: delta.slice(0, 200), phase: null, toolName: null, raw: params, ts },
+                event: {
+                    type: 'assistant',
+                    message: preview(delta),
+                    fullMessage: delta,
+                    phase: null,
+                    toolName: null,
+                    raw: params,
+                    ts,
+                },
             };
         }
 
@@ -48,8 +72,17 @@ export function mapCodexAppNotification(
             if (itemType === 'reasoning') return { event: { type: 'thinking', message: 'reasoning completed', phase: null, toolName: null, raw: params, ts }, flushThinking: true };
             const toolName = resolveToolName(itemType, item);
             const status = str(item, 'status') || 'completed';
+            const detail = resolveToolDetail(item);
             return {
-                event: { type: 'tool_result', message: `${toolName} [${status}]`.slice(0, 200), phase: null, toolName, raw: params, ts },
+                event: {
+                    type: 'tool_result',
+                    message: preview(`${toolName} [${status}]`),
+                    dedupeKey: itemDedupeKey('completed', itemType, item, toolName, detail),
+                    phase: itemPhase(item),
+                    toolName,
+                    raw: params,
+                    ts,
+                },
             };
         }
 
@@ -71,7 +104,15 @@ export function mapCodexAppNotification(
             const turn = rec(params['turn']);
             const status = turn ? str(turn, 'status') : 'completed';
             return {
-                event: { type: 'system', message: `turn ${status || 'completed'}`, phase: null, toolName: null, raw: params, ts },
+                event: {
+                    type: 'system',
+                    message: `turn ${status || 'completed'}`,
+                    dedupeKey: `codex-app:turn/completed:${status || 'completed'}`,
+                    phase: null,
+                    toolName: null,
+                    raw: params,
+                    ts,
+                },
                 flushThinking: true,
             };
         }
@@ -107,6 +148,21 @@ function resolveToolDetail(item: Rec): string {
         if (val && typeof val === 'object') return JSON.stringify(val);
     }
     return '';
+}
+
+function itemPhase(item: Rec): string | null {
+    return str(item, 'id') || str(item, 'itemId') || null;
+}
+
+function itemDedupeKey(stage: string, itemType: string, item: Rec, toolName: string, detail: string): string {
+    const id = itemPhase(item);
+    return id
+        ? `codex-app:item/${stage}:${id}`
+        : `codex-app:item/${stage}:${itemType}:${toolName}:${detail}`;
+}
+
+function preview(text: string): string {
+    return text.slice(0, 200);
 }
 
 function str(obj: Rec, key: string): string {

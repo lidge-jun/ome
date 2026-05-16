@@ -225,6 +225,7 @@ function spawnCodexApp(prompt: string, opts: SpawnOptions): { jobId: string; res
         });
         let fullText = '';
         let settled = false;
+        const seenCodexAppEvents = new Set<string>();
         const startTime = Date.now();
 
         const settle = (code: number) => {
@@ -247,6 +248,10 @@ function spawnCodexApp(prompt: string, opts: SpawnOptions): { jobId: string; res
         client.on('notification', (method: string, params: Record<string, unknown>) => {
             const mapped = mapCodexAppNotification(method, params);
             if (!mapped) return;
+            if (mapped.event.dedupeKey) {
+                if (seenCodexAppEvents.has(mapped.event.dedupeKey)) return;
+                seenCodexAppEvents.add(mapped.event.dedupeKey);
+            }
 
             if (mapped.sessionId && !detectedSessionId) {
                 detectedSessionId = mapped.sessionId;
@@ -257,7 +262,7 @@ function spawnCodexApp(prompt: string, opts: SpawnOptions): { jobId: string; res
             bus.emit('job_log', { jobId: job.id, line });
 
             if (mapped.event.type === 'assistant') {
-                fullText += mapped.event.message;
+                fullText += mapped.event.fullMessage ?? mapped.event.message;
             }
 
             opts.onStdout?.(line + '\n');

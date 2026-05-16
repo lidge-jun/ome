@@ -82,6 +82,8 @@ export interface Job {
 export interface ProgressEvent {
     type: 'assistant' | 'tool_use' | 'tool_result' | 'thinking' | 'error' | 'system' | 'unknown';
     message: string;
+    fullMessage?: string;
+    dedupeKey?: string;
     phase: string | null;
     toolName: string | null;
     raw: unknown;
